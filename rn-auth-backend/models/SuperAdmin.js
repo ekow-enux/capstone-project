@@ -34,6 +34,11 @@ const superAdminSchema = new mongoose.Schema({
     isActive: {
         type: Boolean,
         default: true
+    },
+    role: {
+        type: String,
+        enum: ['super_admin'],
+        default: 'super_admin'
     }
 }, { 
     timestamps: true 

@@ -31,7 +31,8 @@ export const createSuperAdmin = async (req, res) => {
             name,
             email,
             managedDepartments,
-            managedStations
+            managedStations,
+            role: 'super_admin'
         });
         await superAdmin.save();
 
@@ -102,7 +103,7 @@ export const loginSuperAdmin = async (req, res) => {
 
         // Generate JWT token
         const token = jwt.sign(
-            { id: admin._id, username: admin.username, role: 'superadmin' },
+            { id: admin._id, username: admin.username, role: admin.role || 'super_admin' },
             process.env.JWT_SECRET,
             { expiresIn: '7d' }
         );

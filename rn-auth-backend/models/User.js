@@ -10,6 +10,11 @@ const userSchema = new mongoose.Schema({
     dob: { type: Date },
     image: { type: String },
     ghanaPost: { type: String },
+    role: {
+        type: String,
+        enum: ['user', 'super_admin'],
+        default: 'user'
+    },
     // OTP Verification Fields
     isPhoneVerified: { 
         type: Boolean, 

@@ -6,7 +6,7 @@ import arkeselOTPService from '../services/arkeselOTPService.js';
 
 export const register = async (req, res) => {
     try {
-        const { name, phone, email, password, address, country, dob, image, ghanaPost } = req.body;
+        const { name, phone, email, password, address, country, dob, image, ghanaPost, role } = req.body;
         console.log('request', req.body);
 
         // Validate required fields
@@ -35,6 +35,10 @@ export const register = async (req, res) => {
         // Hash password
         const hashed = await bcrypt.hash(password, 10);
 
+        const userRole = typeof role === 'string' && ['user', 'super_admin'].includes(role.toLowerCase())
+            ? role.toLowerCase()
+            : 'user';
+
         // Create user - TEMPORARILY BYPASSING VERIFICATION
         const user = new User({ 
             name, 
@@ -46,6 +50,7 @@ export const register = async (req, res) => {
             dob,
             image,
             ghanaPost,
+            role: userRole,
             isPhoneVerified: true, // TEMPORARILY SET TO TRUE - BYPASSING VERIFICATION
             isActive: true // TEMPORARILY SET TO TRUE - BYPASSING VERIFICATION
         });
@@ -84,7 +89,7 @@ export const register = async (req, res) => {
         // await otp.save();
 
         // Return success with token (TEMPORARILY BYPASSING OTP VERIFICATION)
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+        const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
         res.status(201).json({ 
             message: 'User created successfully. OTP verification temporarily disabled.',
             token,
@@ -93,6 +98,7 @@ export const register = async (req, res) => {
                 name: user.name,
                 phone: user.phone,
                 email: user.email,
+                role: user.role,
                 isPhoneVerified: user.isPhoneVerified,
                 isActive: user.isActive
             }
@@ -133,7 +139,7 @@ export const login = async (req, res) => {
         user.lastLoginAt = new Date();
         await user.save();
 
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+        const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
         res.status(200).json({ 
             token,
             user: {
@@ -146,6 +152,7 @@ export const login = async (req, res) => {
                 dob: user.dob,
                 image: user.image,
                 ghanaPost: user.ghanaPost,
+                role: user.role,
                 isPhoneVerified: user.isPhoneVerified,
                 phoneVerifiedAt: user.phoneVerifiedAt,
                 lastLoginAt: user.lastLoginAt
