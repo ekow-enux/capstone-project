@@ -63,9 +63,9 @@ export const createSuperAdmin = async (req, res) => {
 // Login SuperAdmin
 export const loginSuperAdmin = async (req, res) => {
     try {
-        const { username, password } = req.body || {};
+        const { username:serviceNumber, password } = req.body || {};
 
-        if (!username || !password) {
+        if (!serviceNumber || !password) {
             return res.status(400).json({ 
                 success: false, 
                 message: 'Username and password are required' 
@@ -73,7 +73,7 @@ export const loginSuperAdmin = async (req, res) => {
         }
 
         // Find admin by username
-        const admin = await SuperAdmin.findOne({ username: username.toLowerCase() });
+        const admin = await SuperAdmin.findOne({ username: serviceNumber.toLowerCase() });
         
         if (!admin) {
             return res.status(404).json({ 
