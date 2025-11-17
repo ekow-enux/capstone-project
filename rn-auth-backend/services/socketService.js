@@ -6,10 +6,17 @@ let io = null;
 export const initializeSocket = (server) => {
     io = new Server(server, {
         cors: {
-            origin: ['http://localhost:3000', 'http://localhost:3001', 'https://gnfs.ekowlabs.space'],
+            origin: [
+                'http://localhost:3000', 
+                'http://localhost:3001', 
+                'https://gnfs.ekowlabs.space',
+                'https://auth.ekowlabs.space'
+            ],
             methods: ['GET', 'POST'],
             credentials: true
-        }
+        },
+        transports: ['websocket', 'polling'], // Allow both transports
+        allowEIO3: true // Allow Engine.IO v3 clients
     });
 
     io.on('connection', (socket) => {

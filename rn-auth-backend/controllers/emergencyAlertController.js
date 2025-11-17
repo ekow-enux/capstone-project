@@ -148,24 +148,45 @@ export const updateEmergencyAlert = async (req, res) => {
             });
         }
 
-        const isStatusChangingToAccepted = updateData.status === 'accepted' && currentAlert.status !== 'accepted';
+        // Normalize status values for comparison (handle case sensitivity and whitespace)
+        const newStatus = updateData.status ? String(updateData.status).trim().toLowerCase() : null;
+        const currentStatus = currentAlert.status ? String(currentAlert.status).trim().toLowerCase() : null;
+        
+        console.log(`🔍 Status check - Current: "${currentStatus}", New: "${newStatus}"`);
+        
+        // Check if status is changing to accepted
+        const isStatusChangingToAccepted = newStatus === 'accepted' && currentStatus !== 'accepted';
+        
+        if (isStatusChangingToAccepted) {
+            console.log('✅ Status is changing to accepted - will create incident');
+        } else if (newStatus === 'accepted' && currentStatus === 'accepted') {
+            console.log('ℹ️  Status is already accepted - skipping incident creation');
+        } else if (newStatus !== 'accepted') {
+            console.log(`ℹ️  Status is changing to "${newStatus}" (not accepted) - skipping incident creation`);
+        }
 
         // If updating status to accepted, set dispatchedAt if not already set
-        if (updateData.status === 'accepted' && !updateData.dispatchedAt) {
+        if (newStatus === 'accepted' && !updateData.dispatchedAt) {
             updateData.dispatchedAt = new Date();
             updateData.dispatched = true;
+            // Ensure status is set to 'accepted' (normalized case)
+            updateData.status = 'accepted';
         }
         
         // If updating status to rejected, set declinedAt if not already set
-        if (updateData.status === 'rejected' && !updateData.declinedAt) {
+        if (newStatus === 'rejected' && !updateData.declinedAt) {
             updateData.declinedAt = new Date();
             updateData.declined = true;
+            // Ensure status is set to 'rejected' (normalized case)
+            updateData.status = 'rejected';
         }
         
         // If updating status to referred, set referredAt if not already set
-        if (updateData.status === 'referred' && !updateData.referredAt) {
+        if (newStatus === 'referred' && !updateData.referredAt) {
             updateData.referredAt = new Date();
             updateData.referred = true;
+            // Ensure status is set to 'referred' (normalized case)
+            updateData.status = 'referred';
         }
 
         const emergencyAlert = await EmergencyAlert.findByIdAndUpdate(
@@ -190,17 +211,29 @@ export const updateEmergencyAlert = async (req, res) => {
         if (isStatusChangingToAccepted) {
             try {
                 // Always allow creating incident (don't check for existing incident for this specific alert)
-                // Get the station from the alert - ensure it's an ObjectId
-                let stationId = emergencyAlert.station?._id || emergencyAlert.station;
+                // Get the station from the currentAlert (before update) to ensure we have the ObjectId reference
+                // Use currentAlert.station instead of emergencyAlert.station to avoid population issues
+                let stationId = currentAlert.station;
+                
+                // If station is populated as an object, extract _id
+                if (stationId && typeof stationId === 'object' && stationId._id) {
+                    stationId = stationId._id;
+                }
                 
                 // Convert to ObjectId if it's a string
                 if (stationId && typeof stationId === 'string') {
                     stationId = new mongoose.Types.ObjectId(stationId);
                 }
                 
-                if (!stationId) {
-                    console.log('⚠️  Cannot create incident: Alert missing station');
+                // Ensure stationId is a valid ObjectId
+                if (!stationId || !mongoose.Types.ObjectId.isValid(stationId)) {
+                    console.log('⚠️  Cannot create incident: Alert missing station or invalid station ID');
+                    console.log(`   💡 Station ID value: ${stationId}`);
                 } else {
+                    // Ensure stationId is an ObjectId instance for consistent querying
+                    if (!(stationId instanceof mongoose.Types.ObjectId)) {
+                        stationId = new mongoose.Types.ObjectId(stationId);
+                    }
                     console.log(`🔍 DEBUG [updateEmergencyAlert]: Looking for Operations department for station: ${stationId}`);
                     console.log(`🔍 DEBUG: Station ID type: ${typeof stationId}`);
                     console.log(`🔍 DEBUG: Station ID value: ${stationId}`);
@@ -239,15 +272,10 @@ export const updateEmergencyAlert = async (req, res) => {
                             console.log(`✅ Found active unit: ${activeUnit.name} (${activeUnit._id})`);
                             
                             // Create incident with status 'active' (default)
-                            // Get station ID from the alert
-                            const alertStationId = emergencyAlert.station?._id || emergencyAlert.station;
-                            const incidentStationId = typeof alertStationId === 'string' 
-                                ? new mongoose.Types.ObjectId(alertStationId) 
-                                : alertStationId;
-                            
+                            // Use the stationId we already extracted and validated
                             const incident = new Incident({
                                 alertId: id,
-                                station: incidentStationId, // Add station ID from alert
+                                station: stationId, // Use the validated stationId
                                 departmentOnDuty: operationsDepartment._id,
                                 unitOnDuty: activeUnit._id,
                                 status: 'active' // Default status - active
@@ -357,7 +385,7 @@ export const deleteEmergencyAlert = async (req, res) => {
         }
 
         const emergencyAlert = await EmergencyAlert.findById(id);
-        
+
         if (!emergencyAlert) {
             return res.status(404).json({
                 success: false,
@@ -657,16 +685,28 @@ export const dispatchEmergencyAlert = async (req, res) => {
             try {
                 // Always allow creating incident (don't check for existing incident for this specific alert)
                 // Get the station from the alert - ensure it's an ObjectId
-                let stationId = emergencyAlert.station?._id || emergencyAlert.station;
+                // Handle both populated and non-populated station references
+                let stationId = emergencyAlert.station;
+                
+                // If station is populated as an object, extract _id
+                if (stationId && typeof stationId === 'object' && stationId._id) {
+                    stationId = stationId._id;
+                }
                 
                 // Convert to ObjectId if it's a string
                 if (stationId && typeof stationId === 'string') {
                     stationId = new mongoose.Types.ObjectId(stationId);
                 }
                 
-                if (!stationId) {
-                    console.log('⚠️  Cannot create incident: Alert missing station');
+                // Ensure stationId is a valid ObjectId
+                if (!stationId || !mongoose.Types.ObjectId.isValid(stationId)) {
+                    console.log('⚠️  Cannot create incident: Alert missing station or invalid station ID');
+                    console.log(`   💡 Station ID value: ${stationId}`);
                 } else {
+                    // Ensure stationId is an ObjectId instance for consistent querying
+                    if (!(stationId instanceof mongoose.Types.ObjectId)) {
+                        stationId = new mongoose.Types.ObjectId(stationId);
+                    }
                     console.log(`🔍 DEBUG [dispatchEmergencyAlert]: Looking for Operations department for station: ${stationId}`);
                     console.log(`🔍 DEBUG: Station ID type: ${typeof stationId}`);
                     console.log(`🔍 DEBUG: Station ID value: ${stationId}`);
@@ -705,15 +745,10 @@ export const dispatchEmergencyAlert = async (req, res) => {
                             console.log(`✅ Found active unit: ${activeUnit.name} (${activeUnit._id})`);
                             
                             // Create incident with status 'active' (default)
-                            // Get station ID from the alert
-                            const alertStationId = emergencyAlert.station?._id || emergencyAlert.station;
-                            const incidentStationId = typeof alertStationId === 'string' 
-                                ? new mongoose.Types.ObjectId(alertStationId) 
-                                : alertStationId;
-                            
+                            // Use the stationId we already extracted and validated
                             const incident = new Incident({
                                 alertId: reportId,
-                                station: incidentStationId, // Add station ID from alert
+                                station: stationId, // Use the validated stationId
                                 departmentOnDuty: operationsDepartment._id,
                                 unitOnDuty: activeUnit._id,
                                 status: 'active' // Default status - active

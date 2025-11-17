@@ -31,7 +31,12 @@ const PORT = process.env.PORT || 5000;
 const httpServer = createServer(app);
 
 app.use(cors({
-    origin: ['http://localhost:3000', 'http://localhost:3001','https://gnfs.ekowlabs.space'],
+    origin: [
+        'http://localhost:3000', 
+        'http://localhost:3001',
+        'https://gnfs.ekowlabs.space',
+        'https://auth.ekowlabs.space'
+    ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
