@@ -51,6 +51,22 @@ const stationSchema = new mongoose.Schema({
         trim: true,
         unique: true,
         sparse: true
+    },
+    status: {
+        type: String,
+        enum: ['in commission', 'out of commission'],
+        default: 'in commission',
+        required: false
+    },
+    hasActiveIncident: {
+        type: Boolean,
+        default: false,
+        required: false
+    },
+    hasActiveAlert: {
+        type: Boolean,
+        default: false,
+        required: false
     }
 }, { 
     timestamps: true,

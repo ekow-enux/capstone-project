@@ -1,27 +1,27 @@
 import express from 'express';
 import {
-    createFireReport,
-    getAllFireReports,
-    getFireReportById,
-    updateFireReport,
-    deleteFireReport,
-    getFireReportsByStation,
-    getFireReportsByUser,
-    getFireReportStats,
+    createEmergencyAlert,
+    getAllEmergencyAlerts,
+    getEmergencyAlertById,
+    updateEmergencyAlert,
+    deleteEmergencyAlert,
+    getEmergencyAlertsByStation,
+    getEmergencyAlertsByUser,
+    getEmergencyAlertStats,
     
-} from '../controllers/fireReportController.js';
+} from '../controllers/emergencyAlertController.js';
 const router = express.Router();
 
 /**
  * @swagger
  * components:
  *   schemas:
- *     FireReport:
+ *     EmergencyAlert:
  *       type: object
  *       properties:
  *         _id:
  *           type: string
- *           description: Fire report ID
+ *           description: Emergency alert ID
  *           example: "507f1f77bcf86cd799439011"
  *         incidentType:
  *           type: string
@@ -79,9 +79,9 @@ const router = express.Router();
  *           description: When the report was created
  *         status:
  *           type: string
- *           enum: [pending, responding, resolved, closed]
- *           default: pending
- *           example: "pending"
+ *           enum: [active, accepted, rejected, referred]
+ *           default: active
+ *           example: "active"
  *         priority:
  *           type: string
  *           enum: [low, medium, high]
@@ -98,11 +98,6 @@ const router = express.Router();
  *           type: string
  *           enum: [minimal, moderate, severe, extensive]
  *           default: minimal
- *         assignedPersonnel:
- *           type: array
- *           items:
- *             type: string
- *           description: Array of personnel IDs assigned to this report
  *         responseTime:
  *           type: number
  *           description: Response time in minutes
@@ -153,7 +148,7 @@ const router = express.Router();
  *           type: string
  *           format: date-time
  *     
- *     FireReportCreateRequest:
+ *     EmergencyAlertCreateRequest:
  *       type: object
  *       required:
  *         - incidentType
@@ -226,7 +221,7 @@ const router = express.Router();
  *                   example: "030 250 1744"
  *         description:
  *           type: string
- *           example: "Fire reported in 3-story building"
+ *           example: "Emergency alerted in 3-story building"
  *         estimatedCasualties:
  *           type: number
  *           minimum: 0
@@ -239,40 +234,35 @@ const router = express.Router();
  *           type: string
  *           enum: [low, medium, high]
  *           example: "high"
- *         assignedPersonnel:
- *           type: array
- *           items:
- *             type: string
- *           example: ["507f1f77bcf86cd799439011", "507f1f77bcf86cd799439012"]
  *         notes:
  *           type: string
  *           example: "Multiple units responding"
  *     
- *     FireReportStats:
+ *     EmergencyAlertStats:
  *       type: object
  *       properties:
- *         totalReports:
+ *         totalAlerts:
  *           type: number
  *           example: 150
- *         pendingReports:
+ *         activeAlerts:
  *           type: number
  *           example: 5
- *         respondingReports:
+ *         acceptedAlerts:
  *           type: number
  *           example: 3
- *         resolvedReports:
- *           type: number
- *           example: 140
- *         closedReports:
+ *         rejectedAlerts:
  *           type: number
  *           example: 2
- *         highPriorityReports:
+ *         referredAlerts:
+ *           type: number
+ *           example: 1
+ *         highPriorityAlerts:
  *           type: number
  *           example: 25
- *         mediumPriorityReports:
+ *         mediumPriorityAlerts:
  *           type: number
  *           example: 50
- *         lowPriorityReports:
+ *         lowPriorityAlerts:
  *           type: number
  *           example: 75
  *         fireIncidents:
@@ -292,23 +282,23 @@ const router = express.Router();
 /**
  * @swagger
  * tags:
- *   - name: Fire Reports
+ *   - name: Emergency Alerts
  *     description: Fire incident reporting and management
  */
 
 /**
  * @swagger
- * /api/fire-reports:
+ * /api/emergency/alerts:
  *   post:
- *     summary: Create a new fire report
- *     tags: [Fire Reports]
+ *     summary: Create a new emergency alert
+ *     tags: [Emergency Alerts]
  *     description: Create a new fire incident report with location, station assignment, and priority. Automatically assigns to Operations department and active unit if available.
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/FireReportCreateRequest'
+ *             $ref: '#/components/schemas/EmergencyAlertCreateRequest'
  *           example:
  *             incidentType: "fire"
  *             incidentName: "Building Fire at Central Market"
@@ -326,11 +316,11 @@ const router = express.Router();
  *               placeId: "ChIJBw0DsOac3w8RKsKHDk7AVeU"
  *               phone: "030 250 1744"
  *             userId: "507f1f77bcf86cd799439011"
- *             description: "Fire reported in 3-story building"
+ *             description: "Emergency alerted in 3-story building"
  *             priority: "high"
  *     responses:
  *       201:
- *         description: Fire report created successfully
+ *         description: Emergency alert created successfully
  *         content:
  *           application/json:
  *             schema:
@@ -341,29 +331,29 @@ const router = express.Router();
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: "Fire report created successfully"
+ *                   example: "Emergency alert created successfully"
  *                 data:
- *                   $ref: '#/components/schemas/FireReport'
+ *                   $ref: '#/components/schemas/EmergencyAlert'
  *       400:
  *         description: Validation error
  *       500:
  *         description: Server error
  */
-router.post('/', createFireReport);
+router.post('/', createEmergencyAlert);
 
 /**
  * @swagger
- * /api/fire-reports:
+ * /api/emergency/alerts:
  *   get:
- *     summary: Get all fire reports
- *     tags: [Fire Reports]
- *     description: Retrieve all fire reports with optional filtering and pagination
+ *     summary: Get all emergency alerts
+ *     tags: [Emergency Alerts]
+ *     description: Retrieve all emergency alerts with optional filtering and pagination
  *     parameters:
  *       - in: query
  *         name: status
  *         schema:
  *           type: string
- *           enum: [pending, responding, resolved, closed]
+ *           enum: [active, accepted, rejected, referred]
  *         description: Filter by status
  *       - in: query
  *         name: priority
@@ -390,7 +380,7 @@ router.post('/', createFireReport);
  *         description: Items per page
  *     responses:
  *       200:
- *         description: Fire reports retrieved successfully
+ *         description: Emergency alerts retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -402,7 +392,7 @@ router.post('/', createFireReport);
  *                 data:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/FireReport'
+ *                     $ref: '#/components/schemas/EmergencyAlert'
  *                 pagination:
  *                   type: object
  *                   properties:
@@ -418,15 +408,15 @@ router.post('/', createFireReport);
  *       500:
  *         description: Server error
  */
-router.get('/',  getAllFireReports);
+router.get('/',  getAllEmergencyAlerts);
 
 /**
  * @swagger
- * /api/fire-reports/stats:
+ * /api/emergency/alerts/stats:
  *   get:
- *     summary: Get fire report statistics
- *     tags: [Fire Reports]
- *     description: Get comprehensive statistics about fire reports
+ *     summary: Get emergency alert statistics
+ *     tags: [Emergency Alerts]
+ *     description: Get comprehensive statistics about emergency alerts
  *     parameters:
  *       - in: query
  *         name: stationId
@@ -457,19 +447,19 @@ router.get('/',  getAllFireReports);
  *                   type: boolean
  *                   example: true
  *                 data:
- *                   $ref: '#/components/schemas/FireReportStats'
+ *                   $ref: '#/components/schemas/EmergencyAlertStats'
  *       500:
  *         description: Server error
  */
-router.get('/stats', getFireReportStats);
+router.get('/stats', getEmergencyAlertStats);
 
 /**
  * @swagger
- * /api/fire-reports/station/{stationId}:
+ * /api/emergency/alerts/station/{stationId}:
  *   get:
- *     summary: Get fire reports by station
- *     tags: [Fire Reports]
- *     description: Retrieve all fire reports for a specific station
+ *     summary: Get emergency alerts by station
+ *     tags: [Emergency Alerts]
+ *     description: Retrieve all emergency alerts for a specific station
  *     parameters:
  *       - in: path
  *         name: stationId
@@ -481,7 +471,7 @@ router.get('/stats', getFireReportStats);
  *         name: status
  *         schema:
  *           type: string
- *           enum: [pending, responding, resolved, closed]
+ *           enum: [active, accepted, rejected, referred]
  *         description: Filter by status
  *       - in: query
  *         name: priority
@@ -503,7 +493,7 @@ router.get('/stats', getFireReportStats);
  *         description: Items per page
  *     responses:
  *       200:
- *         description: Fire reports retrieved successfully
+ *         description: Emergency alerts retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -515,7 +505,7 @@ router.get('/stats', getFireReportStats);
  *                 data:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/FireReport'
+ *                     $ref: '#/components/schemas/EmergencyAlert'
  *                 pagination:
  *                   type: object
  *                   properties:
@@ -533,15 +523,15 @@ router.get('/stats', getFireReportStats);
  *       500:
  *         description: Server error
  */
-router.get('/station/:stationId', getFireReportsByStation);
+router.get('/station/:stationId', getEmergencyAlertsByStation);
 
 /**
  * @swagger
- * /api/fire-reports/user/{userId}:
+ * /api/emergency/alerts/user/{userId}:
  *   get:
- *     summary: Get fire reports by user
- *     tags: [Fire Reports]
- *     description: Retrieve all fire reports created by a specific user
+ *     summary: Get emergency alerts by user
+ *     tags: [Emergency Alerts]
+ *     description: Retrieve all emergency alerts created by a specific user
  *     parameters:
  *       - in: path
  *         name: userId
@@ -553,7 +543,7 @@ router.get('/station/:stationId', getFireReportsByStation);
  *         name: status
  *         schema:
  *           type: string
- *           enum: [pending, responding, resolved, closed]
+ *           enum: [active, accepted, rejected, referred]
  *         description: Filter by status
  *       - in: query
  *         name: page
@@ -569,7 +559,7 @@ router.get('/station/:stationId', getFireReportsByStation);
  *         description: Items per page
  *     responses:
  *       200:
- *         description: Fire reports retrieved successfully
+ *         description: Emergency alerts retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -581,7 +571,7 @@ router.get('/station/:stationId', getFireReportsByStation);
  *                 data:
  *                   type: array
  *                   items:
- *                     $ref: '#/components/schemas/FireReport'
+ *                     $ref: '#/components/schemas/EmergencyAlert'
  *                 pagination:
  *                   type: object
  *                   properties:
@@ -599,25 +589,25 @@ router.get('/station/:stationId', getFireReportsByStation);
  *       500:
  *         description: Server error
  */
-router.get('/user/:userId', getFireReportsByUser);
+router.get('/user/:userId', getEmergencyAlertsByUser);
 
 /**
  * @swagger
- * /api/fire-reports/{id}:
+ * /api/emergency/alerts/{id}:
  *   get:
- *     summary: Get fire report by ID
- *     tags: [Fire Reports]
- *     description: Retrieve a specific fire report by its ID
+ *     summary: Get emergency alert by ID
+ *     tags: [Emergency Alerts]
+ *     description: Retrieve a specific emergency alert by its ID
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
- *         description: Fire report ID
+ *         description: Emergency alert ID
  *     responses:
  *       200:
- *         description: Fire report retrieved successfully
+ *         description: Emergency alert retrieved successfully
  *         content:
  *           application/json:
  *             schema:
@@ -627,30 +617,30 @@ router.get('/user/:userId', getFireReportsByUser);
  *                   type: boolean
  *                   example: true
  *                 data:
- *                   $ref: '#/components/schemas/FireReport'
+ *                   $ref: '#/components/schemas/EmergencyAlert'
  *       400:
- *         description: Invalid fire report ID
+ *         description: Invalid emergency alert ID
  *       404:
- *         description: Fire report not found
+ *         description: Emergency alert not found
  *       500:
  *         description: Server error
  */
-router.get('/:id', getFireReportById);
+router.get('/:id', getEmergencyAlertById);
 
 /**
  * @swagger
- * /api/fire-reports/{id}:
- *   put:
- *     summary: Update fire report
- *     tags: [Fire Reports]
- *     description: Update an existing fire report
+ * /api/emergency/alerts/{id}:
+ *   patch:
+ *     summary: Update emergency alert
+ *     tags: [Emergency Alerts]
+ *     description: Update an existing emergency alert
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
- *         description: Fire report ID
+ *         description: Emergency alert ID
  *     requestBody:
  *       required: true
  *       content:
@@ -660,8 +650,8 @@ router.get('/:id', getFireReportById);
  *             properties:
  *               status:
  *                 type: string
- *                 enum: [pending, responding, resolved, closed]
- *                 example: "responding"
+ *                 enum: [active, accepted, rejected, referred]
+ *                 example: "accepted"
  *               priority:
  *                 type: string
  *                 enum: [low, medium, high]
@@ -669,17 +659,12 @@ router.get('/:id', getFireReportById);
  *               description:
  *                 type: string
  *                 example: "Updated description"
- *               assignedPersonnel:
- *                 type: array
- *                 items:
- *                   type: string
- *                 example: ["507f1f77bcf86cd799439011"]
  *               notes:
  *                 type: string
  *                 example: "Additional notes"
  *     responses:
  *       200:
- *         description: Fire report updated successfully
+ *         description: Emergency alert updated successfully
  *         content:
  *           application/json:
  *             schema:
@@ -690,35 +675,35 @@ router.get('/:id', getFireReportById);
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: "Fire report updated successfully"
+ *                   example: "Emergency alert updated successfully"
  *                 data:
- *                   $ref: '#/components/schemas/FireReport'
+ *                   $ref: '#/components/schemas/EmergencyAlert'
  *       400:
  *         description: Validation error
  *       404:
- *         description: Fire report not found
+ *         description: Emergency alert not found
  *       500:
  *         description: Server error
  */
-router.put('/:id', updateFireReport);
+router.patch('/:id', updateEmergencyAlert);
 
 /**
  * @swagger
- * /api/fire-reports/{id}:
+ * /api/emergency/alerts/{id}:
  *   delete:
- *     summary: Delete fire report
- *     tags: [Fire Reports]
- *     description: Delete a fire report
+ *     summary: Delete emergency alert
+ *     tags: [Emergency Alerts]
+ *     description: Delete a emergency alert
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
- *         description: Fire report ID
+ *         description: Emergency alert ID
  *     responses:
  *       200:
- *         description: Fire report deleted successfully
+ *         description: Emergency alert deleted successfully
  *         content:
  *           application/json:
  *             schema:
@@ -729,14 +714,14 @@ router.put('/:id', updateFireReport);
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: "Fire report deleted successfully"
+ *                   example: "Emergency alert deleted successfully"
  *       400:
- *         description: Invalid fire report ID
+ *         description: Invalid emergency alert ID
  *       404:
- *         description: Fire report not found
+ *         description: Emergency alert not found
  *       500:
  *         description: Server error
  */
-router.delete('/:id', deleteFireReport);
+router.delete('/:id', deleteEmergencyAlert);
 
 export default router;

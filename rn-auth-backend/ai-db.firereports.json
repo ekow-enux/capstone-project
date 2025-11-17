@@ -1,0 +1,326 @@
+[{
+  "_id": {
+    "$oid": "6900f7bed2ee11e1e199f3df"
+  },
+  "incidentType": "fire",
+  "incidentName": "Fire Emergency",
+  "location": {
+    "coordinates": {
+      "latitude": 5.7601004,
+      "longitude": -0.1954725
+    },
+    "locationUrl": "https://www.google.com/maps?q=5.7601004,-0.1954725",
+    "locationName": "Man, Berekuso, Greater Accra Region, Ghana"
+  },
+  "station": {
+    "$oid": "6902474bee691673e388ddb4"
+  },
+  "userId": {
+    "$oid": "6900c34ad10dd5db82c49ff9"
+  },
+  "status": "pending",
+  "priority": "high",
+  "estimatedCasualties": 0,
+  "estimatedDamage": "minimal",
+  "assignedPersonnel": [],
+  "reportedAt": {
+    "$date": "2025-10-28T17:05:02.444Z"
+  },
+  "createdAt": {
+    "$date": "2025-10-28T17:05:02.446Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-28T17:05:02.446Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6900fe3dd2ee11e1e199f3f9"
+  },
+  "incidentType": "fire",
+  "incidentName": "Fire Emergency",
+  "location": {
+    "coordinates": {
+      "latitude": 5.7597384,
+      "longitude": -0.1964828
+    },
+    "locationUrl": "https://www.google.com/maps?q=5.7597384,-0.1964828",
+    "locationName": "QR64+RF6, Berekuso, Greater Accra Region, Ghana"
+  },
+  "station": {
+    "$oid": "6902474bee691673e388ddb4"
+  },
+  "userId": {
+    "$oid": "6900c34ad10dd5db82c49ff9"
+  },
+  "status": "pending",
+  "priority": "high",
+  "estimatedCasualties": 0,
+  "estimatedDamage": "minimal",
+  "assignedPersonnel": [],
+  "reportedAt": {
+    "$date": "2025-10-28T17:32:45.827Z"
+  },
+  "createdAt": {
+    "$date": "2025-10-28T17:32:45.827Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-28T17:32:45.827Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "690100b7ee691673e388dc4f"
+  },
+  "incidentType": "flood",
+  "incidentName": "Flood/Water",
+  "location": {
+    "coordinates": {
+      "latitude": 5.7406495,
+      "longitude": -0.1824256
+    },
+    "locationUrl": "https://www.google.com/maps?q=5.7406495,-0.1824256",
+    "locationName": "PRR8+6PW, Pantang West, Greater Accra Region, Ghana"
+  },
+  "station": {
+    "$oid": "6902474bee691673e388ddb4"
+  },
+  "userId": {
+    "$oid": "6900c34ad10dd5db82c49ff9"
+  },
+  "status": "pending",
+  "priority": "low",
+  "estimatedCasualties": 0,
+  "estimatedDamage": "minimal",
+  "assignedPersonnel": [],
+  "reportedAt": {
+    "$date": "2025-10-28T17:43:19.607Z"
+  },
+  "createdAt": {
+    "$date": "2025-10-28T17:43:19.612Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-28T17:43:19.612Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "690244c9ee691673e388dcc7"
+  },
+  "incidentType": "fire",
+  "incidentName": "Fire Emergency",
+  "location": {
+    "coordinates": {
+      "latitude": 5.5728334,
+      "longitude": -0.2086371
+    },
+    "locationUrl": "https://www.google.com/maps?q=5.5728334,-0.2086371",
+    "locationName": "28, Cola Street, Accra, Greater Accra Region, Ghana"
+  },
+  "station": {
+    "$oid": "69024337ee691673e388dc9e"
+  },
+  "userId": {
+    "$oid": "6900c34ad10dd5db82c49ff9"
+  },
+  "status": "pending",
+  "priority": "high",
+  "estimatedCasualties": 0,
+  "estimatedDamage": "minimal",
+  "assignedPersonnel": [],
+  "reportedAt": {
+    "$date": "2025-10-29T16:46:01.256Z"
+  },
+  "createdAt": {
+    "$date": "2025-10-29T16:46:01.257Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-29T16:46:01.257Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69024565ee691673e388dcde"
+  },
+  "incidentType": "fire",
+  "incidentName": "Fire Emergency",
+  "location": {
+    "coordinates": {
+      "latitude": 5.5728334,
+      "longitude": -0.2086371
+    },
+    "locationUrl": "https://www.google.com/maps?q=5.5728334,-0.2086371",
+    "locationName": "28, Cola Street, Accra, Greater Accra Region, Ghana"
+  },
+  "station": {
+    "$oid": "6902474bee691673e388ddb4"
+  },
+  "userId": {
+    "$oid": "6900c34ad10dd5db82c49ff9"
+  },
+  "status": "pending",
+  "priority": "high",
+  "estimatedCasualties": 0,
+  "estimatedDamage": "minimal",
+  "assignedPersonnel": [],
+  "reportedAt": {
+    "$date": "2025-10-29T16:48:37.011Z"
+  },
+  "createdAt": {
+    "$date": "2025-10-29T16:48:37.012Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-29T16:48:37.012Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6902457aee691673e388dce6"
+  },
+  "incidentType": "fire",
+  "incidentName": "Fire Emergency",
+  "location": {
+    "coordinates": {
+      "latitude": 5.5728334,
+      "longitude": -0.2086371
+    },
+    "locationUrl": "https://www.google.com/maps?q=5.5728334,-0.2086371",
+    "locationName": "28, Cola Street, Accra, Greater Accra Region, Ghana"
+  },
+  "station": {
+    "$oid": "6900f7aad2ee11e1e199f3dc"
+  },
+  "userId": {
+    "$oid": "6900c34ad10dd5db82c49ff9"
+  },
+  "status": "pending",
+  "priority": "high",
+  "estimatedCasualties": 0,
+  "estimatedDamage": "minimal",
+  "assignedPersonnel": [],
+  "reportedAt": {
+    "$date": "2025-10-29T16:48:58.380Z"
+  },
+  "createdAt": {
+    "$date": "2025-10-29T16:48:58.381Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-29T16:48:58.381Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6902477fee691673e388ddb9"
+  },
+  "incidentType": "fire",
+  "incidentName": "Fire Emergency",
+  "location": {
+    "coordinates": {
+      "latitude": 5.5728334,
+      "longitude": -0.2086371
+    },
+    "locationUrl": "https://www.google.com/maps?q=5.5728334,-0.2086371",
+    "locationName": "28, Cola Street, Accra, Greater Accra Region, Ghana"
+  },
+  "station": {
+    "$oid": "6902474bee691673e388ddb4"
+  },
+  "userId": {
+    "$oid": "6900c34ad10dd5db82c49ff9"
+  },
+  "status": "pending",
+  "priority": "high",
+  "estimatedCasualties": 0,
+  "estimatedDamage": "minimal",
+  "assignedPersonnel": [],
+  "reportedAt": {
+    "$date": "2025-10-29T16:57:35.162Z"
+  },
+  "createdAt": {
+    "$date": "2025-10-29T16:57:35.163Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-29T16:57:35.163Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "69024df3ee691673e388dddb"
+  },
+  "incidentType": "other",
+  "incidentName": "Electrical fire",
+  "location": {
+    "coordinates": {
+      "latitude": 5.5729033,
+      "longitude": -0.2085167
+    },
+    "locationUrl": "https://www.google.com/maps?q=5.5729033,-0.2085167",
+    "locationName": "28, Cola Street, Accra, Greater Accra Region, Ghana"
+  },
+  "station": {
+    "$oid": "6902474bee691673e388ddb4"
+  },
+  "userId": {
+    "$oid": "6900c34ad10dd5db82c49ff9"
+  },
+  "status": "pending",
+  "priority": "low",
+  "description": "Electricity fire",
+  "estimatedCasualties": 0,
+  "estimatedDamage": "minimal",
+  "assignedPersonnel": [],
+  "reportedAt": {
+    "$date": "2025-10-29T17:25:07.453Z"
+  },
+  "createdAt": {
+    "$date": "2025-10-29T17:25:07.453Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-29T17:25:07.453Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "6904781bee691673e388ddf0"
+  },
+  "incidentType": "other",
+  "incidentName": "Light Pole Burning",
+  "location": {
+    "coordinates": {
+      "latitude": 5.7606684,
+      "longitude": -0.1949533
+    },
+    "locationUrl": "https://www.google.com/maps?q=5.7606684,-0.1949533",
+    "locationName": "QR63+5VP, Berekuso, Greater Accra Region, Ghana"
+  },
+  "station": {
+    "$oid": "6902474bee691673e388ddb4"
+  },
+  "userId": {
+    "$oid": "6900c34ad10dd5db82c49ff9"
+  },
+  "status": "pending",
+  "priority": "low",
+  "description": "The electricity light poem is on fire at UPSA",
+  "estimatedCasualties": 0,
+  "estimatedDamage": "minimal",
+  "assignedPersonnel": [],
+  "reportedAt": {
+    "$date": "2025-10-31T08:49:31.655Z"
+  },
+  "createdAt": {
+    "$date": "2025-10-31T08:49:31.656Z"
+  },
+  "updatedAt": {
+    "$date": "2025-10-31T08:49:31.656Z"
+  },
+  "__v": 0
+}]

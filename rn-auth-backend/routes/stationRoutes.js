@@ -202,7 +202,7 @@ router.get('/:id', getStationById);
 /**
  * @swagger
  * /api/fire/stations/{id}:
- *   put:
+ *   patch:
  *     summary: Update a fire station
  *     tags: [Stations]
  *     description: Update an existing fire station. All fields are optional - only provided fields will be updated.
@@ -255,7 +255,7 @@ router.get('/:id', getStationById);
  *       500:
  *         description: Server error
  */
-router.put('/:id', updateStation);
+router.patch('/:id', updateStation);
 
 /**
  * @swagger

@@ -1,4 +1,6 @@
 import Station from '../models/Station.js';
+import Incident from '../models/Incident.js';
+import EmergencyAlert from '../models/EmergencyAlert.js';
 import mongoose from 'mongoose';
 
 // Helper function to validate coordinates
@@ -79,7 +81,7 @@ export const createStation = async (req, res) => {
         // Log the incoming request body
         console.log('🚀 CREATE STATION - Request Body:', JSON.stringify(req.body, null, 2));
         
-        const { name, location, location_url, phone_number, latitude, longitude, placeId } = req.body;
+        const { name, location, location_url, phone_number, latitude, longitude, placeId, status } = req.body;
         
         // Log extracted values
         console.log('📋 Extracted values:', {
@@ -157,6 +159,9 @@ export const createStation = async (req, res) => {
             location_url,
             phone_number,
             placeId,
+            status: status || 'in commission', // Default to 'in commission' if not provided
+            hasActiveIncident: false,
+            hasActiveAlert: false,
             ...mapCoordinates(latitude, longitude)
         };
         
@@ -318,6 +323,14 @@ export const bulkCreateStations = async (req, res) => {
     }
 };
 
+// Helper function to add status information to stations
+const addStationStatus = async (stations) => {
+    // Simply return stations as-is, no transformation needed
+    return stations.map(station => {
+        return station.toObject ? station.toObject() : station;
+    });
+};
+
 // Get All Stations
 export const getAllStations = async (req, res) => {
     try {
@@ -326,10 +339,13 @@ export const getAllStations = async (req, res) => {
             .populate('personnel')
             .sort({ name: 1 });
         
+        // Add status information to each station
+        const stationsWithStatus = await addStationStatus(stations);
+        
         res.status(200).json({
             success: true,
-            count: stations.length,
-            data: stations
+            count: stationsWithStatus.length,
+            data: stationsWithStatus
         });
         
     } catch (error) {
@@ -365,9 +381,13 @@ export const getStationById = async (req, res) => {
             });
         }
         
+        // Add status information
+        const stationsWithStatus = await addStationStatus([station]);
+        const stationWithStatus = stationsWithStatus[0];
+        
         res.status(200).json({
             success: true,
-            data: station
+            data: stationWithStatus
         });
         
     } catch (error) {

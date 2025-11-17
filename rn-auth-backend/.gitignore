@@ -46,3 +46,10 @@ coverage/
 .cache/
 temp/
 tmp/
+
+# Documentation
+*.md
+
+# Database files
+ad-db.json
+*-db.json

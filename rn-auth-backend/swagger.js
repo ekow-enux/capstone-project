@@ -114,8 +114,12 @@ Tokens are valid for 24 hours after login.
         description: 'Station administrator management with authentication and station-specific management capabilities.',
       },
       {
-        name: 'Fire Reports',
-        description: 'Fire incident reporting and management with support for both civilian and fire officer reporters.',
+        name: 'Emergency Alerts',
+        description: 'Emergency alert reporting and management with support for both civilian and fire officer reporters.',
+      },
+      {
+        name: 'Incidents',
+        description: 'Incident operational lifecycle management - tracks dispatch, arrival, resolution, and closure of emergency incidents.',
       },
       {
         name: 'Health',

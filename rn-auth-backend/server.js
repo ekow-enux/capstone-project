@@ -13,15 +13,22 @@ import roleRoutes from './routes/roleRoutes.js';
 import rankRoutes from './routes/rankRoutes.js';
 import superAdminRoutes from './routes/superAdminRoutes.js';
 import stationAdminRoutes from './routes/stationAdminRoutes.js';
-import fireReportRoutes from './routes/fireReportRoutes.js';
+import emergencyAlertRoutes from './routes/emergencyAlertRoutes.js';
+import incidentRoutes from './routes/incidentRoutes.js';
+import referralRoutes from './routes/referralRoutes.js';
 import verifyToken from './middleware/verifyToken.js';
 import { swaggerUi, specs } from './swagger.js';
 import cron from 'node-cron';
 import { autoDeactivateUnits } from './controllers/unitController.js';
+import { initializeSocket } from './services/socketService.js';
+import { createServer } from 'http';
 
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Create HTTP server for Socket.IO
+const httpServer = createServer(app);
 
 app.use(cors({
     origin: ['http://localhost:3000', 'http://localhost:3001','https://gnfs.ekowlabs.space'],
@@ -50,7 +57,9 @@ app.use('/api/fire/units', unitRoutes);
 app.use('/api/fire/groups', groupRoutes);
 app.use('/api/fire/roles', roleRoutes);
 app.use('/api/fire/ranks', rankRoutes);
-app.use('/api/fire/reports', fireReportRoutes);
+app.use('/api/emergency/alerts', emergencyAlertRoutes);
+app.use('/api/incidents', incidentRoutes);
+app.use('/api/referrals', referralRoutes);
 
 // Super Admin routes (mixed - some public, some protected)
 // The routes file handles which ones need auth
@@ -77,6 +86,9 @@ app.get('/', (req, res) => {
 mongoose.connect(process.env.MONGODB_URI).then(() => {
     console.log('✅ MongoDB connected successfully');
     
+    // Initialize Socket.IO
+    initializeSocket(httpServer);
+    
     // Schedule automatic unit deactivation at 8 AM daily
     // Cron format: minute hour day month weekday
     // "0 8 * * *" = 8:00 AM every day
@@ -93,12 +105,13 @@ mongoose.connect(process.env.MONGODB_URI).then(() => {
     
     console.log('✅ Scheduled task configured: Auto-deactivate units daily at 8:00 AM (GMT+0)');
     
-    app.listen(PORT, '0.0.0.0', () => {
+    httpServer.listen(PORT, '0.0.0.0', () => {
         console.log(`🚀 Server running on port ${PORT}`);
         console.log(`📍 Local: http://localhost:${PORT}`);
         console.log(`🌐 Network: http://0.0.0.0:${PORT}`);
         console.log(`📱 API Base: http://localhost:${PORT}/api`);
         console.log(`📚 API Docs: http://localhost:${PORT}/api-docs`);
+        console.log(`🔌 WebSocket: ws://localhost:${PORT}`);
     });
 }).catch(err => {
     console.error('❌ MongoDB connection failed:', err.message);

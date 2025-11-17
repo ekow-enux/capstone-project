@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const fireReportSchema = new mongoose.Schema({
+const emergencyAlertSchema = new mongoose.Schema({
     incidentType: {
         type: String,
         required: [true, 'Incident type is required'],
@@ -44,13 +44,13 @@ const fireReportSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Department',
         required: false,
-        description: 'Department assigned to handle this report (typically Operations)'
+        description: 'Department assigned to handle this alert (typically Operations)'
     },
     unit: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Unit',
         required: false,
-        description: 'Active unit assigned to handle this report'
+        description: 'Active unit assigned to handle this alert'
     },
     reporterId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -69,10 +69,10 @@ const fireReportSchema = new mongoose.Schema({
     status: {
         type: String,
         enum: {
-            values: ['pending', 'responding', 'resolved', 'closed'],
-            message: 'Status must be one of: pending, responding, resolved, closed'
+            values: ['active', 'accepted', 'rejected', 'referred'],
+            message: 'Status must be one of: active, accepted, rejected, referred'
         },
-        default: 'pending'
+        default: 'active'
     },
     priority: {
         type: String,
@@ -97,10 +97,6 @@ const fireReportSchema = new mongoose.Schema({
         enum: ['minimal', 'moderate', 'severe', 'extensive'],
         default: 'minimal'
     },
-    assignedPersonnel: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'FirePersonnel'
-    }],
     responseTime: {
         type: Number, // in minutes
         min: 0
@@ -116,7 +112,7 @@ const fireReportSchema = new mongoose.Schema({
     dispatched: {
         type: Boolean,
         default: false,
-        description: 'Whether the active unit has dispatched to handle this report'
+        description: 'Whether the active unit has dispatched to handle this alert'
     },
     dispatchedAt: {
         type: Date,
@@ -126,7 +122,7 @@ const fireReportSchema = new mongoose.Schema({
     declined: {
         type: Boolean,
         default: false,
-        description: 'Whether the active unit has declined this report'
+        description: 'Whether the active unit has declined this alert'
     },
     declinedAt: {
         type: Date,
@@ -137,29 +133,29 @@ const fireReportSchema = new mongoose.Schema({
         type: String,
         trim: true,
         required: false,
-        description: 'Reason for declining the report'
+        description: 'Reason for declining the alert'
     },
     referred: {
         type: Boolean,
         default: false,
-        description: 'Whether the report has been referred to another station'
+        description: 'Whether the alert has been referred to another station'
     },
     referredAt: {
         type: Date,
         required: false,
-        description: 'Timestamp when the report was referred'
+        description: 'Timestamp when the alert was referred'
     },
     referredToStation: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Station',
         required: false,
-        description: 'Station ID that this report was referred to'
+        description: 'Station ID that this alert was referred to'
     },
     referReason: {
         type: String,
         trim: true,
         required: false,
-        description: 'Reason for referring the report to another station'
+        description: 'Reason for referring the alert to another station'
     }
 }, { 
     timestamps: true,
@@ -168,7 +164,7 @@ const fireReportSchema = new mongoose.Schema({
 });
 
 // Virtual for response time calculation
-fireReportSchema.virtual('responseTimeMinutes').get(function() {
+emergencyAlertSchema.virtual('responseTimeMinutes').get(function() {
     if (this.reportedAt && this.resolvedAt) {
         return Math.round((this.resolvedAt - this.reportedAt) / (1000 * 60));
     }
@@ -176,7 +172,7 @@ fireReportSchema.virtual('responseTimeMinutes').get(function() {
 });
 
 // Virtual for station details
-fireReportSchema.virtual('stationDetails', {
+emergencyAlertSchema.virtual('stationDetails', {
     ref: 'Station',
     localField: 'station',
     foreignField: '_id',
@@ -184,7 +180,7 @@ fireReportSchema.virtual('stationDetails', {
 });
 
 // Virtual for reporter details
-fireReportSchema.virtual('reporterDetails', {
+emergencyAlertSchema.virtual('reporterDetails', {
     refPath: 'reporterType',
     localField: 'reporterId',
     foreignField: '_id',
@@ -192,7 +188,7 @@ fireReportSchema.virtual('reporterDetails', {
 });
 
 // Virtual for referred station details
-fireReportSchema.virtual('referredStationDetails', {
+emergencyAlertSchema.virtual('referredStationDetails', {
     ref: 'Station',
     localField: 'referredToStation',
     foreignField: '_id',
@@ -200,22 +196,22 @@ fireReportSchema.virtual('referredStationDetails', {
 });
 
 // Indexes for efficient queries
-fireReportSchema.index({ station: 1 });
-fireReportSchema.index({ department: 1 });
-fireReportSchema.index({ unit: 1 });
-fireReportSchema.index({ reporterId: 1 });
-fireReportSchema.index({ reporterType: 1 });
-fireReportSchema.index({ status: 1 });
-fireReportSchema.index({ priority: 1 });
-fireReportSchema.index({ reportedAt: -1 });
-fireReportSchema.index({ dispatched: 1 });
-fireReportSchema.index({ declined: 1 });
-fireReportSchema.index({ referred: 1 });
-fireReportSchema.index({ referredToStation: 1 });
-fireReportSchema.index({ 'location.coordinates.latitude': 1, 'location.coordinates.longitude': 1 });
+emergencyAlertSchema.index({ station: 1 });
+emergencyAlertSchema.index({ department: 1 });
+emergencyAlertSchema.index({ unit: 1 });
+emergencyAlertSchema.index({ reporterId: 1 });
+emergencyAlertSchema.index({ reporterType: 1 });
+emergencyAlertSchema.index({ status: 1 });
+emergencyAlertSchema.index({ priority: 1 });
+emergencyAlertSchema.index({ reportedAt: -1 });
+emergencyAlertSchema.index({ dispatched: 1 });
+emergencyAlertSchema.index({ declined: 1 });
+emergencyAlertSchema.index({ referred: 1 });
+emergencyAlertSchema.index({ referredToStation: 1 });
+emergencyAlertSchema.index({ 'location.coordinates.latitude': 1, 'location.coordinates.longitude': 1 });
 
 // Pre-save middleware to validate station exists
-fireReportSchema.pre('save', async function(next) {
+emergencyAlertSchema.pre('save', async function(next) {
     try {
         const Station = mongoose.model('Station');
         const station = await Station.findById(this.station);
@@ -229,7 +225,7 @@ fireReportSchema.pre('save', async function(next) {
 });
 
 // Pre-save middleware to validate reporter exists
-fireReportSchema.pre('save', async function(next) {
+emergencyAlertSchema.pre('save', async function(next) {
     try {
         if (this.reporterType === 'User') {
             const User = mongoose.model('User');
@@ -250,4 +246,5 @@ fireReportSchema.pre('save', async function(next) {
     }
 });
 
-export default mongoose.model('FireReport', fireReportSchema);
+export default mongoose.model('EmergencyAlert', emergencyAlertSchema);
+
