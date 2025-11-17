@@ -209,37 +209,54 @@ export const updateEmergencyAlert = async (req, res) => {
 
         // If status changed to accepted, create an incident
         if (isStatusChangingToAccepted) {
+            console.log('🚨 ===== STARTING INCIDENT CREATION PROCESS =====');
+            console.log(`📋 Alert ID: ${id}`);
+            console.log(`📋 Alert Status Change: ${currentStatus} -> ${newStatus}`);
+            
             try {
                 // Always allow creating incident (don't check for existing incident for this specific alert)
                 // Get the station from the currentAlert (before update) to ensure we have the ObjectId reference
                 // Use currentAlert.station instead of emergencyAlert.station to avoid population issues
+                console.log('🔍 Step 1: Extracting station ID from currentAlert...');
                 let stationId = currentAlert.station;
+                console.log(`   Raw stationId from currentAlert:`, stationId);
+                console.log(`   stationId type: ${typeof stationId}`);
+                console.log(`   stationId instanceof ObjectId: ${stationId instanceof mongoose.Types.ObjectId}`);
                 
                 // If station is populated as an object, extract _id
                 if (stationId && typeof stationId === 'object' && stationId._id) {
+                    console.log('   📍 Station is populated object, extracting _id...');
                     stationId = stationId._id;
+                    console.log(`   Extracted _id: ${stationId}`);
                 }
                 
                 // Convert to ObjectId if it's a string
                 if (stationId && typeof stationId === 'string') {
+                    console.log('   🔄 Converting string stationId to ObjectId...');
                     stationId = new mongoose.Types.ObjectId(stationId);
+                    console.log(`   Converted to ObjectId: ${stationId}`);
                 }
                 
                 // Ensure stationId is a valid ObjectId
+                console.log('🔍 Step 2: Validating station ID...');
+                console.log(`   Final stationId: ${stationId}`);
+                console.log(`   stationId is valid: ${stationId ? mongoose.Types.ObjectId.isValid(stationId) : false}`);
+                
                 if (!stationId || !mongoose.Types.ObjectId.isValid(stationId)) {
-                    console.log('⚠️  Cannot create incident: Alert missing station or invalid station ID');
-                    console.log(`   💡 Station ID value: ${stationId}`);
+                    console.error('❌ Cannot create incident: Alert missing station or invalid station ID');
+                    console.error(`   💡 Station ID value: ${stationId}`);
+                    console.error(`   💡 Station ID type: ${typeof stationId}`);
+                    console.error('🚨 ===== INCIDENT CREATION FAILED - INVALID STATION ID =====');
                 } else {
                     // Ensure stationId is an ObjectId instance for consistent querying
                     if (!(stationId instanceof mongoose.Types.ObjectId)) {
                         stationId = new mongoose.Types.ObjectId(stationId);
                     }
-                    console.log(`🔍 DEBUG [updateEmergencyAlert]: Looking for Operations department for station: ${stationId}`);
-                    console.log(`🔍 DEBUG: Station ID type: ${typeof stationId}`);
-                    console.log(`🔍 DEBUG: Station ID value: ${stationId}`);
-                    console.log(`🔍 DEBUG: Station ID toString: ${stationId.toString()}`);
+                    console.log(`🔍 Step 3: Looking for Operations department for station: ${stationId}`);
+                    console.log(`   Station ID toString: ${stationId.toString()}`);
                     
                     // Query with station_id AND name contains "operations" (case-insensitive)
+                    console.log('   🔄 Querying Department collection...');
                     const operationsDepartment = await Department.findOne({ 
                         station_id: stationId,
                         name: { $regex: /operations/i } // Case-insensitive regex to match "Operations", "Operations Deparment", etc.
@@ -247,73 +264,137 @@ export const updateEmergencyAlert = async (req, res) => {
                     
                     // Debug: Also check what departments exist for this station
                     const allDeptsForStation = await Department.find({ station_id: stationId });
-                    console.log(`🔍 DEBUG: Found ${allDeptsForStation.length} total department(s) for station ${stationId}:`);
+                    console.log(`   📊 Found ${allDeptsForStation.length} total department(s) for station ${stationId}:`);
                     allDeptsForStation.forEach((dept, index) => {
-                        console.log(`   ${index + 1}. Department: "${dept.name}" (ID: ${dept._id})`);
+                        console.log(`      ${index + 1}. Department: "${dept.name}" (ID: ${dept._id}, station_id: ${dept.station_id})`);
                     });
 
                     if (!operationsDepartment) {
-                        console.log(`⚠️  Cannot create incident: Operations department not found for station ${stationId}`);
-                        console.log(`   💡 Available departments for this station: ${allDeptsForStation.map(d => d.name).join(', ') || 'None'}`);
-                        console.log(`   💡 Make sure there is an Operations department with station_id matching the alert's station`);
+                        console.error(`❌ Cannot create incident: Operations department not found for station ${stationId}`);
+                        console.error(`   💡 Available departments for this station: ${allDeptsForStation.map(d => d.name).join(', ') || 'None'}`);
+                        console.error(`   💡 Make sure there is an Operations department with station_id matching the alert's station`);
+                        console.error('🚨 ===== INCIDENT CREATION FAILED - NO OPERATIONS DEPARTMENT =====');
                     } else {
-                        console.log(`✅ Found Operations department: ${operationsDepartment._id} for station ${stationId}`);
+                        console.log(`✅ Step 3 Complete: Found Operations department: ${operationsDepartment._id} for station ${stationId}`);
+                        console.log(`   Department Name: "${operationsDepartment.name}"`);
+                        console.log(`   Department station_id: ${operationsDepartment.station_id}`);
                         
                         // Find an active unit under the Operations department
+                        console.log(`🔍 Step 4: Looking for active unit in Operations department...`);
+                        console.log(`   Department ID: ${operationsDepartment._id}`);
+                        
                         const activeUnit = await Unit.findOne({
                             department: operationsDepartment._id,
                             isActive: true
                         });
+                        
+                        console.log(`   📊 Active unit query result:`, activeUnit ? `Found ${activeUnit.name} (${activeUnit._id})` : 'No active unit found');
+                        
+                        // Check all units in department for debugging
+                        const allUnitsInDept = await Unit.find({ department: operationsDepartment._id });
+                        console.log(`   📊 Total units in Operations department: ${allUnitsInDept.length}`);
+                        allUnitsInDept.forEach((unit, index) => {
+                            console.log(`      ${index + 1}. Unit: "${unit.name}" (ID: ${unit._id}, isActive: ${unit.isActive})`);
+                        });
 
                         if (!activeUnit) {
-                            console.log(`⚠️  Cannot create incident: No active unit found in Operations department for station ${stationId}`);
-                            console.log(`   💡 Make sure there is an active unit (isActive: true) in the Operations department`);
+                            console.error(`❌ Cannot create incident: No active unit found in Operations department for station ${stationId}`);
+                            console.error(`   💡 Make sure there is an active unit (isActive: true) in the Operations department`);
+                            console.error('🚨 ===== INCIDENT CREATION FAILED - NO ACTIVE UNIT =====');
                         } else {
-                            console.log(`✅ Found active unit: ${activeUnit.name} (${activeUnit._id})`);
+                            console.log(`✅ Step 4 Complete: Found active unit: ${activeUnit.name} (${activeUnit._id})`);
                             
                             // Create incident with status 'active' (default)
                             // Use the stationId we already extracted and validated
-                            const incident = new Incident({
+                            console.log(`🔍 Step 5: Creating incident object...`);
+                            const incidentData = {
                                 alertId: id,
                                 station: stationId, // Use the validated stationId
                                 departmentOnDuty: operationsDepartment._id,
                                 unitOnDuty: activeUnit._id,
                                 status: 'active' // Default status - active
+                            };
+                            
+                            console.log(`   📝 Incident data to create:`, {
+                                alertId: incidentData.alertId,
+                                station: incidentData.station.toString(),
+                                departmentOnDuty: incidentData.departmentOnDuty.toString(),
+                                unitOnDuty: incidentData.unitOnDuty.toString(),
+                                status: incidentData.status
                             });
+                            
+                            const incident = new Incident(incidentData);
+                            console.log(`   ✅ Incident object created (before save)`);
+                            console.log(`   📋 Incident._id (generated): ${incident._id}`);
+                            console.log(`   📋 Incident.alertId: ${incident.alertId}`);
+                            console.log(`   📋 Incident.station: ${incident.station}`);
+                            console.log(`   📋 Incident.departmentOnDuty: ${incident.departmentOnDuty}`);
+                            console.log(`   📋 Incident.unitOnDuty: ${incident.unitOnDuty}`);
+                            console.log(`   📋 Incident.status: ${incident.status}`);
 
-                            await incident.save();
-                            console.log('✅ Incident created automatically for accepted alert:', incident._id);
-                            console.log(`   📍 Station: ${stationId}`);
-                            console.log(`   🏢 Department: Operations (${operationsDepartment._id})`);
-                            console.log(`   🚒 Unit: ${activeUnit.name} (${activeUnit._id})`);
-                            
-                            // Update station's hasActiveIncident field
+                            console.log(`🔍 Step 6: Saving incident to database...`);
                             try {
-                                const activeIncidentsCount = await Incident.countDocuments({
-                                    station: stationId,
-                                    status: { $in: ['active', 'dispatched', 'on_scene'] }
-                                });
+                                await incident.save();
+                                console.log('✅ Step 6 Complete: Incident saved successfully!');
+                                console.log(`   ✅ Incident ID: ${incident._id}`);
+                                console.log(`   📍 Station: ${stationId}`);
+                                console.log(`   🏢 Department: Operations (${operationsDepartment._id})`);
+                                console.log(`   🚒 Unit: ${activeUnit.name} (${activeUnit._id})`);
+                                console.log('🚨 ===== INCIDENT CREATION SUCCESSFUL =====');
                                 
-                                await Station.findByIdAndUpdate(stationId, {
-                                    hasActiveIncident: activeIncidentsCount > 0
-                                });
-                                console.log(`✅ Updated station hasActiveIncident to ${activeIncidentsCount > 0}`);
-                            } catch (stationUpdateError) {
-                                console.error('⚠️ Error updating station hasActiveIncident:', stationUpdateError.message);
-                            }
-                            
-                            // Broadcast new incident via WebSocket
-                            try {
-                                emitNewIncident(incident);
-                            } catch (socketError) {
-                                console.error('⚠️ Failed to broadcast incident creation via WebSocket:', socketError.message);
+                                // Update station's hasActiveIncident field
+                                console.log(`🔍 Step 7: Updating station hasActiveIncident field...`);
+                                try {
+                                    const activeIncidentsCount = await Incident.countDocuments({
+                                        station: stationId,
+                                        status: { $in: ['active', 'dispatched', 'on_scene'] }
+                                    });
+                                    
+                                    console.log(`   📊 Active incidents count: ${activeIncidentsCount}`);
+                                    
+                                    await Station.findByIdAndUpdate(stationId, {
+                                        hasActiveIncident: activeIncidentsCount > 0
+                                    });
+                                    console.log(`✅ Step 7 Complete: Updated station hasActiveIncident to ${activeIncidentsCount > 0}`);
+                                } catch (stationUpdateError) {
+                                    console.error('⚠️ Step 7 Failed: Error updating station hasActiveIncident:', stationUpdateError.message);
+                                    console.error('   Error stack:', stationUpdateError.stack);
+                                }
+                                
+                                // Broadcast new incident via WebSocket
+                                console.log(`🔍 Step 8: Broadcasting incident via WebSocket...`);
+                                try {
+                                    emitNewIncident(incident);
+                                    console.log(`✅ Step 8 Complete: Incident broadcasted via WebSocket`);
+                                } catch (socketError) {
+                                    console.error('⚠️ Step 8 Failed: Failed to broadcast incident creation via WebSocket:', socketError.message);
+                                    console.error('   Error stack:', socketError.stack);
+                                }
+                            } catch (saveError) {
+                                console.error('❌ Step 6 Failed: Error saving incident to database');
+                                console.error(`   Error message: ${saveError.message}`);
+                                console.error(`   Error name: ${saveError.name}`);
+                                console.error(`   Error code: ${saveError.code}`);
+                                if (saveError.errors) {
+                                    console.error(`   Validation errors:`, JSON.stringify(saveError.errors, null, 2));
+                                }
+                                console.error(`   Error stack:`, saveError.stack);
+                                console.error('🚨 ===== INCIDENT CREATION FAILED - SAVE ERROR =====');
+                                throw saveError; // Re-throw to be caught by outer catch
                             }
                         }
                     }
                 }
             } catch (incidentError) {
-                console.error('⚠️  Error creating incident for accepted alert:', incidentError.message);
-                console.error('⚠️  Error details:', incidentError);
+                console.error('❌ ===== INCIDENT CREATION FAILED - UNEXPECTED ERROR =====');
+                console.error(`   Error message: ${incidentError.message}`);
+                console.error(`   Error name: ${incidentError.name}`);
+                console.error(`   Error code: ${incidentError.code || 'N/A'}`);
+                if (incidentError.errors) {
+                    console.error(`   Validation errors:`, JSON.stringify(incidentError.errors, null, 2));
+                }
+                console.error(`   Error stack:`, incidentError.stack);
+                console.error('⚠️  Incident creation failed but alert update will continue...');
                 // Don't fail the alert update if incident creation fails
             }
         }
@@ -682,37 +763,54 @@ export const dispatchEmergencyAlert = async (req, res) => {
 
         // If status changed to accepted, create an incident
         if (!wasAlreadyAccepted) {
+            console.log('🚨 ===== STARTING INCIDENT CREATION PROCESS (DISPATCH) =====');
+            console.log(`📋 Alert ID: ${reportId}`);
+            console.log(`📋 Alert Status Change: ${emergencyAlert.status} -> accepted`);
+            
             try {
                 // Always allow creating incident (don't check for existing incident for this specific alert)
                 // Get the station from the alert - ensure it's an ObjectId
                 // Handle both populated and non-populated station references
+                console.log('🔍 Step 1: Extracting station ID from emergencyAlert...');
                 let stationId = emergencyAlert.station;
+                console.log(`   Raw stationId from emergencyAlert:`, stationId);
+                console.log(`   stationId type: ${typeof stationId}`);
+                console.log(`   stationId instanceof ObjectId: ${stationId instanceof mongoose.Types.ObjectId}`);
                 
                 // If station is populated as an object, extract _id
                 if (stationId && typeof stationId === 'object' && stationId._id) {
+                    console.log('   📍 Station is populated object, extracting _id...');
                     stationId = stationId._id;
+                    console.log(`   Extracted _id: ${stationId}`);
                 }
                 
                 // Convert to ObjectId if it's a string
                 if (stationId && typeof stationId === 'string') {
+                    console.log('   🔄 Converting string stationId to ObjectId...');
                     stationId = new mongoose.Types.ObjectId(stationId);
+                    console.log(`   Converted to ObjectId: ${stationId}`);
                 }
                 
                 // Ensure stationId is a valid ObjectId
+                console.log('🔍 Step 2: Validating station ID...');
+                console.log(`   Final stationId: ${stationId}`);
+                console.log(`   stationId is valid: ${stationId ? mongoose.Types.ObjectId.isValid(stationId) : false}`);
+                
                 if (!stationId || !mongoose.Types.ObjectId.isValid(stationId)) {
-                    console.log('⚠️  Cannot create incident: Alert missing station or invalid station ID');
-                    console.log(`   💡 Station ID value: ${stationId}`);
+                    console.error('❌ Cannot create incident: Alert missing station or invalid station ID');
+                    console.error(`   💡 Station ID value: ${stationId}`);
+                    console.error(`   💡 Station ID type: ${typeof stationId}`);
+                    console.error('🚨 ===== INCIDENT CREATION FAILED - INVALID STATION ID =====');
                 } else {
                     // Ensure stationId is an ObjectId instance for consistent querying
                     if (!(stationId instanceof mongoose.Types.ObjectId)) {
                         stationId = new mongoose.Types.ObjectId(stationId);
                     }
-                    console.log(`🔍 DEBUG [dispatchEmergencyAlert]: Looking for Operations department for station: ${stationId}`);
-                    console.log(`🔍 DEBUG: Station ID type: ${typeof stationId}`);
-                    console.log(`🔍 DEBUG: Station ID value: ${stationId}`);
-                    console.log(`🔍 DEBUG: Station ID toString: ${stationId.toString()}`);
+                    console.log(`🔍 Step 3: Looking for Operations department for station: ${stationId}`);
+                    console.log(`   Station ID toString: ${stationId.toString()}`);
                     
                     // Query with station_id AND name contains "operations" (case-insensitive)
+                    console.log('   🔄 Querying Department collection...');
                     const operationsDepartment = await Department.findOne({ 
                         station_id: stationId,
                         name: { $regex: /operations/i } // Case-insensitive regex to match "Operations", "Operations Deparment", etc.
@@ -720,72 +818,137 @@ export const dispatchEmergencyAlert = async (req, res) => {
                     
                     // Debug: Also check what departments exist for this station
                     const allDeptsForStation = await Department.find({ station_id: stationId });
-                    console.log(`🔍 DEBUG: Found ${allDeptsForStation.length} total department(s) for station ${stationId}:`);
+                    console.log(`   📊 Found ${allDeptsForStation.length} total department(s) for station ${stationId}:`);
                     allDeptsForStation.forEach((dept, index) => {
-                        console.log(`   ${index + 1}. Department: "${dept.name}" (ID: ${dept._id})`);
+                        console.log(`      ${index + 1}. Department: "${dept.name}" (ID: ${dept._id}, station_id: ${dept.station_id})`);
                     });
 
                     if (!operationsDepartment) {
-                        console.log(`⚠️  Cannot create incident: Operations department not found for station ${stationId}`);
-                        console.log(`   💡 Available departments for this station: ${allDeptsForStation.map(d => d.name).join(', ') || 'None'}`);
-                        console.log(`   💡 Make sure there is an Operations department with station_id matching the alert's station`);
+                        console.error(`❌ Cannot create incident: Operations department not found for station ${stationId}`);
+                        console.error(`   💡 Available departments for this station: ${allDeptsForStation.map(d => d.name).join(', ') || 'None'}`);
+                        console.error(`   💡 Make sure there is an Operations department with station_id matching the alert's station`);
+                        console.error('🚨 ===== INCIDENT CREATION FAILED - NO OPERATIONS DEPARTMENT =====');
                     } else {
-                        console.log(`✅ Found Operations department: ${operationsDepartment._id} for station ${stationId}`);
+                        console.log(`✅ Step 3 Complete: Found Operations department: ${operationsDepartment._id} for station ${stationId}`);
+                        console.log(`   Department Name: "${operationsDepartment.name}"`);
+                        console.log(`   Department station_id: ${operationsDepartment.station_id}`);
                         
                         // Find an active unit under the Operations department
+                        console.log(`🔍 Step 4: Looking for active unit in Operations department...`);
+                        console.log(`   Department ID: ${operationsDepartment._id}`);
+                        
                         const activeUnit = await Unit.findOne({
                             department: operationsDepartment._id,
                             isActive: true
                         });
+                        
+                        console.log(`   📊 Active unit query result:`, activeUnit ? `Found ${activeUnit.name} (${activeUnit._id})` : 'No active unit found');
+                        
+                        // Check all units in department for debugging
+                        const allUnitsInDept = await Unit.find({ department: operationsDepartment._id });
+                        console.log(`   📊 Total units in Operations department: ${allUnitsInDept.length}`);
+                        allUnitsInDept.forEach((unit, index) => {
+                            console.log(`      ${index + 1}. Unit: "${unit.name}" (ID: ${unit._id}, isActive: ${unit.isActive})`);
+                        });
 
                         if (!activeUnit) {
-                            console.log(`⚠️  Cannot create incident: No active unit found in Operations department for station ${stationId}`);
-                            console.log(`   💡 Make sure there is an active unit (isActive: true) in the Operations department`);
+                            console.error(`❌ Cannot create incident: No active unit found in Operations department for station ${stationId}`);
+                            console.error(`   💡 Make sure there is an active unit (isActive: true) in the Operations department`);
+                            console.error('🚨 ===== INCIDENT CREATION FAILED - NO ACTIVE UNIT =====');
                         } else {
-                            console.log(`✅ Found active unit: ${activeUnit.name} (${activeUnit._id})`);
+                            console.log(`✅ Step 4 Complete: Found active unit: ${activeUnit.name} (${activeUnit._id})`);
                             
                             // Create incident with status 'active' (default)
                             // Use the stationId we already extracted and validated
-                            const incident = new Incident({
+                            console.log(`🔍 Step 5: Creating incident object...`);
+                            const incidentData = {
                                 alertId: reportId,
                                 station: stationId, // Use the validated stationId
                                 departmentOnDuty: operationsDepartment._id,
                                 unitOnDuty: activeUnit._id,
                                 status: 'active' // Default status - active
+                            };
+                            
+                            console.log(`   📝 Incident data to create:`, {
+                                alertId: incidentData.alertId,
+                                station: incidentData.station.toString(),
+                                departmentOnDuty: incidentData.departmentOnDuty.toString(),
+                                unitOnDuty: incidentData.unitOnDuty.toString(),
+                                status: incidentData.status
                             });
+                            
+                            const incident = new Incident(incidentData);
+                            console.log(`   ✅ Incident object created (before save)`);
+                            console.log(`   📋 Incident._id (generated): ${incident._id}`);
+                            console.log(`   📋 Incident.alertId: ${incident.alertId}`);
+                            console.log(`   📋 Incident.station: ${incident.station}`);
+                            console.log(`   📋 Incident.departmentOnDuty: ${incident.departmentOnDuty}`);
+                            console.log(`   📋 Incident.unitOnDuty: ${incident.unitOnDuty}`);
+                            console.log(`   📋 Incident.status: ${incident.status}`);
 
-                            await incident.save();
-                            console.log('✅ Incident created automatically for dispatched alert:', incident._id);
-                            console.log(`   📍 Station: ${stationId}`);
-                            console.log(`   🏢 Department: Operations (${operationsDepartment._id})`);
-                            console.log(`   🚒 Unit: ${activeUnit.name} (${activeUnit._id})`);
-                            
-                            // Update station's hasActiveIncident field
+                            console.log(`🔍 Step 6: Saving incident to database...`);
                             try {
-                                const activeIncidentsCount = await Incident.countDocuments({
-                                    station: stationId,
-                                    status: { $in: ['active', 'dispatched', 'on_scene'] }
-                                });
+                                await incident.save();
+                                console.log('✅ Step 6 Complete: Incident saved successfully!');
+                                console.log(`   ✅ Incident ID: ${incident._id}`);
+                                console.log(`   📍 Station: ${stationId}`);
+                                console.log(`   🏢 Department: Operations (${operationsDepartment._id})`);
+                                console.log(`   🚒 Unit: ${activeUnit.name} (${activeUnit._id})`);
+                                console.log('🚨 ===== INCIDENT CREATION SUCCESSFUL =====');
                                 
-                                await Station.findByIdAndUpdate(stationId, {
-                                    hasActiveIncident: activeIncidentsCount > 0
-                                });
-                                console.log(`✅ Updated station hasActiveIncident to ${activeIncidentsCount > 0}`);
-                            } catch (stationUpdateError) {
-                                console.error('⚠️ Error updating station hasActiveIncident:', stationUpdateError.message);
-                            }
-                            
-                            // Broadcast new incident via WebSocket
-                            try {
-                                emitNewIncident(incident);
-                            } catch (socketError) {
-                                console.error('⚠️ Failed to broadcast incident creation via WebSocket:', socketError.message);
+                                // Update station's hasActiveIncident field
+                                console.log(`🔍 Step 7: Updating station hasActiveIncident field...`);
+                                try {
+                                    const activeIncidentsCount = await Incident.countDocuments({
+                                        station: stationId,
+                                        status: { $in: ['active', 'dispatched', 'on_scene'] }
+                                    });
+                                    
+                                    console.log(`   📊 Active incidents count: ${activeIncidentsCount}`);
+                                    
+                                    await Station.findByIdAndUpdate(stationId, {
+                                        hasActiveIncident: activeIncidentsCount > 0
+                                    });
+                                    console.log(`✅ Step 7 Complete: Updated station hasActiveIncident to ${activeIncidentsCount > 0}`);
+                                } catch (stationUpdateError) {
+                                    console.error('⚠️ Step 7 Failed: Error updating station hasActiveIncident:', stationUpdateError.message);
+                                    console.error('   Error stack:', stationUpdateError.stack);
+                                }
+                                
+                                // Broadcast new incident via WebSocket
+                                console.log(`🔍 Step 8: Broadcasting incident via WebSocket...`);
+                                try {
+                                    emitNewIncident(incident);
+                                    console.log(`✅ Step 8 Complete: Incident broadcasted via WebSocket`);
+                                } catch (socketError) {
+                                    console.error('⚠️ Step 8 Failed: Failed to broadcast incident creation via WebSocket:', socketError.message);
+                                    console.error('   Error stack:', socketError.stack);
+                                }
+                            } catch (saveError) {
+                                console.error('❌ Step 6 Failed: Error saving incident to database');
+                                console.error(`   Error message: ${saveError.message}`);
+                                console.error(`   Error name: ${saveError.name}`);
+                                console.error(`   Error code: ${saveError.code}`);
+                                if (saveError.errors) {
+                                    console.error(`   Validation errors:`, JSON.stringify(saveError.errors, null, 2));
+                                }
+                                console.error(`   Error stack:`, saveError.stack);
+                                console.error('🚨 ===== INCIDENT CREATION FAILED - SAVE ERROR =====');
+                                throw saveError; // Re-throw to be caught by outer catch
                             }
                         }
                     }
                 }
             } catch (incidentError) {
-                console.error('⚠️  Error creating incident for dispatched alert:', incidentError.message);
+                console.error('❌ ===== INCIDENT CREATION FAILED - UNEXPECTED ERROR =====');
+                console.error(`   Error message: ${incidentError.message}`);
+                console.error(`   Error name: ${incidentError.name}`);
+                console.error(`   Error code: ${incidentError.code || 'N/A'}`);
+                if (incidentError.errors) {
+                    console.error(`   Validation errors:`, JSON.stringify(incidentError.errors, null, 2));
+                }
+                console.error(`   Error stack:`, incidentError.stack);
+                console.error('⚠️  Incident creation failed but alert dispatch will continue...');
                 // Don't fail the dispatch if incident creation fails
             }
         }
