@@ -453,7 +453,7 @@ export const updateIncidentStatus = async (req, res) => {
             { path: 'unitOnDuty', select: 'name isActive department' }
         ]);
 
-        // Broadcast updated incident via WebSocket
+        // Broadcast updated incident via WebSocket (turnout slip is already in incident.turnoutSlip)
         try {
             emitIncidentUpdated(incident);
         } catch (socketError) {

@@ -37,6 +37,17 @@ departmentSchema.virtual('personnel', {
     options: { sort: { name: 1 } }
 });
 
+// Virtual for department admins in this department
+departmentSchema.virtual('departmentAdmins', {
+    ref: 'DepartmentAdmin',
+    localField: '_id',
+    foreignField: 'department_id',
+    options: {
+        sort: { name: 1 },
+        match: { isActive: true } // Only active admins by default
+    }
+});
+
 // Indexes for efficient queries
 departmentSchema.index({ name: 1, station_id: 1 }, { unique: true }); // Unique department name per station
 departmentSchema.index({ station_id: 1 }); // Index for station-based queries

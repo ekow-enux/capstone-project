@@ -39,6 +39,17 @@ unitSchema.virtual('personnel', {
     options: { sort: { name: 1 } }
 });
 
+// Virtual for unit admins in this unit
+unitSchema.virtual('unitAdmins', {
+    ref: 'UnitAdmin',
+    localField: '_id',
+    foreignField: 'unit_id',
+    options: {
+        sort: { name: 1 },
+        match: { isActive: true } // Only active admins by default
+    }
+});
+
 // Indexes for efficient queries
 unitSchema.index({ name: 1, department: 1 }, { unique: true }); // Compound unique index
 unitSchema.index({ department: 1, isActive: 1 }); // Compound index for active unit queries

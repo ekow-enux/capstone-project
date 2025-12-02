@@ -73,6 +73,44 @@ export const createEmergencyAlertService = async (alertData, options = {}) => {
                     };
                 }
                 
+                // Check if station already has an active incident
+                if (stationDoc.hasActiveIncident) {
+                    // Verify by querying for active incidents
+                    const activeIncident = await Incident.findOne({
+                        station: stationId,
+                        status: { $in: ['active', 'dispatched', 'en-route', 'on-scene'] }
+                    }).populate([
+                        { path: 'alertId', select: 'incidentName incidentType' },
+                        { path: 'departmentOnDuty', select: 'name' },
+                        { path: 'unitOnDuty', select: 'name' }
+                    ]);
+                    
+                    if (activeIncident) {
+                        return {
+                            success: false,
+                            error: {
+                                statusCode: 409,
+                                message: 'Station is currently busy with an active incident. Please try again later or contact another station.',
+                                stationStatus: {
+                                    status: stationDoc.status,
+                                    isActive: stationDoc.status === 'in commission',
+                                    hasActiveAlert: stationDoc.hasActiveAlert || false,
+                                    hasActiveIncident: true,
+                                    activeIncidentId: activeIncident._id.toString(),
+                                    activeIncidentDetails: {
+                                        incidentName: activeIncident.alertId?.incidentName || 'Unknown',
+                                        incidentType: activeIncident.alertId?.incidentType || 'Unknown',
+                                        status: activeIncident.status,
+                                        department: activeIncident.departmentOnDuty?.name || 'Unknown',
+                                        unit: activeIncident.unitOnDuty?.name || 'Unknown',
+                                        startedAt: activeIncident.createdAt
+                                    }
+                                }
+                            }
+                        };
+                    }
+                }
+                
                 // Check if station already has an active alert
                 if (stationDoc.hasActiveAlert) {
                     // Verify by querying for active alerts

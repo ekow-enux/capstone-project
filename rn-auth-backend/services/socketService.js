@@ -236,19 +236,37 @@ export const emitAlertDeleted = (alertId) => {
 export const emitNewIncident = (incidentData) => {
     try {
         const socketIO = getIO();
+        
+        // Extract station ID for room-based broadcasting
+        let stationId = null;
+        if (incidentData.station) {
+            stationId = incidentData.station._id?.toString() || incidentData.station.toString();
+        } else if (incidentData.alertId?.station) {
+            stationId = incidentData.alertId.station._id?.toString() || incidentData.alertId.station.toString();
+        }
+        
         const payload = {
             _id: incidentData._id ? incidentData._id.toString() : null,
             alertId: incidentData.alertId ? incidentData.alertId.toString() : null,
             departmentOnDuty: incidentData.departmentOnDuty ? incidentData.departmentOnDuty.toString() : null,
             unitOnDuty: incidentData.unitOnDuty ? incidentData.unitOnDuty.toString() : null,
             status: incidentData.status || null,
+            stationId: stationId,
             createdAt: incidentData.createdAt ? new Date(incidentData.createdAt).toISOString() : null,
-            updatedAt: incidentData.updatedAt ? new Date(incidentData.updatedAt).toISOString() : null
+            updatedAt: incidentData.updatedAt ? new Date(incidentData.updatedAt).toISOString() : null,
+            // Include turnout slip from incident data if it exists
+            turnoutSlip: incidentData.turnoutSlip || null
         };
 
         // Broadcast to all connected clients
         socketIO.emit('incident_created', payload);
         console.log('📡 Broadcasted incident_created event:', payload._id);
+
+        // Also emit to specific station room if station is available
+        if (stationId) {
+            socketIO.to(`station_${stationId}`).emit('incident_created', payload);
+            console.log(`📡 Broadcasted incident_created to station room: ${stationId}`);
+        }
 
     } catch (error) {
         console.error('❌ Error emitting incident_created event:', error.message);
@@ -259,22 +277,52 @@ export const emitNewIncident = (incidentData) => {
 export const emitIncidentUpdated = (incidentData) => {
     try {
         const socketIO = getIO();
+        
+        // Extract station ID for room-based broadcasting
+        let stationId = null;
+        if (incidentData.station) {
+            stationId = incidentData.station._id?.toString() || incidentData.station.toString();
+        } else if (incidentData.alertId?.station) {
+            stationId = incidentData.alertId.station._id?.toString() || incidentData.alertId.station.toString();
+        }
+        
         const payload = {
             _id: incidentData._id ? incidentData._id.toString() : null,
             alertId: incidentData.alertId ? incidentData.alertId.toString() : null,
             departmentOnDuty: incidentData.departmentOnDuty ? incidentData.departmentOnDuty.toString() : null,
             unitOnDuty: incidentData.unitOnDuty ? incidentData.unitOnDuty.toString() : null,
             status: incidentData.status || null,
+            stationId: stationId,
             dispatchedAt: incidentData.dispatchedAt ? new Date(incidentData.dispatchedAt).toISOString() : null,
             arrivedAt: incidentData.arrivedAt ? new Date(incidentData.arrivedAt).toISOString() : null,
             resolvedAt: incidentData.resolvedAt ? new Date(incidentData.resolvedAt).toISOString() : null,
             closedAt: incidentData.closedAt ? new Date(incidentData.closedAt).toISOString() : null,
-            updatedAt: incidentData.updatedAt ? new Date(incidentData.updatedAt).toISOString() : null
+            updatedAt: incidentData.updatedAt ? new Date(incidentData.updatedAt).toISOString() : null,
+            // Include turnout slip from incident data if it exists (will be present when status is dispatched)
+            turnoutSlip: incidentData.turnoutSlip || null
         };
 
         // Broadcast to all connected clients
         socketIO.emit('incident_updated', payload);
         console.log('📡 Broadcasted incident_updated event:', payload._id);
+        
+        // If status is dispatched and turnout slip exists, emit dedicated turnout slip event
+        if (incidentData.status === 'dispatched' && incidentData.turnoutSlip) {
+            socketIO.emit('turnout_slip_dispatched', payload);
+            console.log('📡 Broadcasted turnout_slip_dispatched event:', payload._id);
+            
+            // Also emit to specific station room if station is available
+            if (stationId) {
+                socketIO.to(`station_${stationId}`).emit('turnout_slip_dispatched', payload);
+                console.log(`📡 Broadcasted turnout_slip_dispatched to station room: ${stationId}`);
+            }
+        }
+
+        // Also emit to specific station room if station is available
+        if (stationId) {
+            socketIO.to(`station_${stationId}`).emit('incident_updated', payload);
+            console.log(`📡 Broadcasted incident_updated to station room: ${stationId}`);
+        }
 
     } catch (error) {
         console.error('❌ Error emitting incident_updated event:', error.message);

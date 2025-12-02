@@ -29,6 +29,12 @@ const incidentSchema = new mongoose.Schema({
         },
         default: 'active'
     },
+    // Turnout slip - generated when incident is dispatched
+    turnoutSlip: {
+        type: mongoose.Schema.Types.Mixed,
+        required: false,
+        description: 'Turnout slip containing incident details, reporter info, and location data'
+    },
     // Operational timestamps only
     dispatchedAt: {
         type: Date,
@@ -209,7 +215,7 @@ incidentSchema.pre('save', async function(next) {
     }
 });
 
-// Pre-save middleware to automatically set timestamps based on status changes
+// Pre-save middleware to automatically set timestamps and generate turnout slip based on status changes
 incidentSchema.pre('save', async function(next) {
     try {
         // Only update if status is being modified
@@ -220,6 +226,27 @@ incidentSchema.pre('save', async function(next) {
                 case 'dispatched':
                     if (!this.dispatchedAt) {
                         this.dispatchedAt = now;
+                    }
+                    // Generate turnout slip when status changes to dispatched
+                    if (!this.turnoutSlip) {
+                        try {
+                            const EmergencyAlert = mongoose.model('EmergencyAlert');
+                            const alert = await EmergencyAlert.findById(this.alertId)
+                                .populate({
+                                    path: 'reporterDetails',
+                                    select: 'name phone email address rank department unit role station'
+                                });
+                            
+                            if (alert) {
+                                // Import the generateTurnoutSlip function dynamically
+                                const { generateTurnoutSlip } = await import('../services/turnoutSlipService.js');
+                                this.turnoutSlip = await generateTurnoutSlip(alert);
+                                console.log('✅ Turnout slip generated and stored in incident');
+                            }
+                        } catch (turnoutSlipError) {
+                            console.error('⚠️ Failed to generate turnout slip:', turnoutSlipError.message);
+                            // Don't fail the save if turnout slip generation fails
+                        }
                     }
                     break;
                 case 'on_scene':

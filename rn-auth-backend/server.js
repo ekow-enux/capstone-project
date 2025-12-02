@@ -13,9 +13,12 @@ import roleRoutes from './routes/roleRoutes.js';
 import rankRoutes from './routes/rankRoutes.js';
 import superAdminRoutes from './routes/superAdminRoutes.js';
 import stationAdminRoutes from './routes/stationAdminRoutes.js';
+import departmentAdminRoutes from './routes/departmentAdminRoutes.js';
+import unitAdminRoutes from './routes/unitAdminRoutes.js';
 import emergencyAlertRoutes from './routes/emergencyAlertRoutes.js';
 import incidentRoutes from './routes/incidentRoutes.js';
 import referralRoutes from './routes/referralRoutes.js';
+import turnoutSlipRoutes from './routes/turnoutSlipRoutes.js';
 import verifyToken from './middleware/verifyToken.js';
 import { swaggerUi, specs } from './swagger.js';
 import cron from 'node-cron';
@@ -65,6 +68,7 @@ app.use('/api/fire/ranks', rankRoutes);
 app.use('/api/emergency/alerts', emergencyAlertRoutes);
 app.use('/api/incidents', incidentRoutes);
 app.use('/api/referrals', referralRoutes);
+app.use('/api/turnout-slips', turnoutSlipRoutes);
 
 // Super Admin routes (mixed - some public, some protected)
 // The routes file handles which ones need auth
@@ -73,6 +77,14 @@ app.use('/api/super-admin', superAdminRoutes);
 // Station Admin routes (mixed - some public, some protected)
 // The routes file handles which ones need auth
 app.use('/api/station-admin', stationAdminRoutes);
+
+// Department Admin routes (mixed - some public, some protected)
+// The routes file handles which ones need auth
+app.use('/api/department-admin', departmentAdminRoutes);
+
+// Unit Admin routes (mixed - some public, some protected)
+// The routes file handles which ones need auth
+app.use('/api/unit-admin', unitAdminRoutes);
 
 app.get('/api/health', (req, res) => {
     res.status(200).json({ 
