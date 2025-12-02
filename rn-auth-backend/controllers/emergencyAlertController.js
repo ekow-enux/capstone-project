@@ -347,7 +347,7 @@ export const updateEmergencyAlert = async (req, res) => {
                                 try {
                                     const activeIncidentsCount = await Incident.countDocuments({
                                         station: stationId,
-                                        status: { $in: ['active', 'dispatched', 'on_scene'] }
+                                        status: { $in: ['pending', 'dispatched', 'active', 'on_scene'] }
                                     });
                                     
                                     console.log(`   📊 Active incidents count: ${activeIncidentsCount}`);
@@ -901,7 +901,7 @@ export const dispatchEmergencyAlert = async (req, res) => {
                                 try {
                                     const activeIncidentsCount = await Incident.countDocuments({
                                         station: stationId,
-                                        status: { $in: ['active', 'dispatched', 'on_scene'] }
+                                        status: { $in: ['pending', 'dispatched', 'active', 'on_scene'] }
                                     });
                                     
                                     console.log(`   📊 Active incidents count: ${activeIncidentsCount}`);

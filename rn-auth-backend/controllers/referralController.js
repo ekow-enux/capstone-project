@@ -147,7 +147,7 @@ export const createReferral = async (req, res) => {
         if (toStation.hasActiveIncident) {
             const activeIncident = await Incident.findOne({
                 station: to_station_id,
-                status: { $in: ['active', 'dispatched', 'on_scene'] }
+                status: { $in: ['pending', 'dispatched', 'active', 'on_scene'] }
             });
 
             if (activeIncident) {

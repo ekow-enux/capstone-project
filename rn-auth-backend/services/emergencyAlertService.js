@@ -78,7 +78,7 @@ export const createEmergencyAlertService = async (alertData, options = {}) => {
                     // Verify by querying for active incidents
                     const activeIncident = await Incident.findOne({
                         station: stationId,
-                        status: { $in: ['pending', 'active', 'dispatched', 'en-route', 'on-scene'] }
+                        status: { $in: ['pending', 'dispatched', 'active', 'on_scene'] }
                     }).populate([
                         { path: 'alertId', select: 'incidentName incidentType' },
                         { path: 'departmentOnDuty', select: 'name' },
@@ -318,7 +318,7 @@ export const createEmergencyAlertService = async (alertData, options = {}) => {
                         { station: stationObjectId },
                         { station: stationObjectId.toString() }
                     ],
-                    status: { $in: ['pending', 'active', 'dispatched', 'on_scene'] }
+                    status: { $in: ['pending', 'dispatched', 'active', 'on_scene'] }
                 }).populate([
                     { path: 'alertId', select: 'incidentName incidentType station' },
                     { path: 'departmentOnDuty', select: '_id name' },
