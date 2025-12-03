@@ -413,12 +413,8 @@ export const emitReferralCreated = (referralData) => {
 
         // Broadcast to all clients
         socketIO.emit('referral_created', payload);
-        
-        // Also emit to specific station rooms
-        if (referralData.from_station_id) {
-            const fromStationId = referralData.from_station_id._id?.toString() || referralData.from_station_id.toString();
-            socketIO.to(`station_${fromStationId}`).emit('referral_created', payload);
-        }
+
+        // Emit only to the target station room (do not send back to originating station)
         if (referralData.to_station_id) {
             const toStationId = referralData.to_station_id._id?.toString() || referralData.to_station_id.toString();
             socketIO.to(`station_${toStationId}`).emit('referral_created', payload);
