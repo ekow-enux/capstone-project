@@ -252,16 +252,15 @@ export const createReferral = async (req, res) => {
             }
         }
 
-        // Populate related data
-        await referral.populate([
-            { path: 'from_station_id', select: 'name location phone_number' },
-            { path: 'to_station_id', select: 'name location phone_number' },
-            { path: 'referenced_data' }
-        ]);
+        // Fetch and populate the referral from database
+        const populatedReferral = await Referral.findById(referral._id)
+            .populate('from_station_id', 'name location phone_number')
+            .populate('to_station_id', 'name location phone_number')
+            .populate('referenced_data');
 
         // Broadcast referral creation via WebSocket
         try {
-            emitReferralCreated(referral);
+            emitReferralCreated(populatedReferral);
         } catch (socketError) {
             console.error('⚠️ Failed to broadcast referral creation via WebSocket:', socketError.message);
         }
@@ -269,7 +268,7 @@ export const createReferral = async (req, res) => {
         res.status(201).json({
             success: true,
             message: 'Referral created successfully',
-            data: referral
+            data: populatedReferral
         });
 
     } catch (error) {
