@@ -6,6 +6,18 @@ import Station from '../models/Station.js';
 import mongoose from 'mongoose';
 import { emitNewIncident, emitIncidentUpdated, emitIncidentDeleted } from '../services/socketService.js';
 
+// Helper function to transform incidents and add reporter info to alert
+const transformIncidentWithReporter = (incident) => {
+    const incidentObj = incident.toObject ? incident.toObject() : incident;
+    if (incidentObj.alertId && incidentObj.alertId.reporterDetails) {
+        incidentObj.alertId.reporterName = incidentObj.alertId.reporterDetails.name || null;
+        incidentObj.alertId.reporterPhone = incidentObj.alertId.reporterDetails.phone || null;
+        // Remove the reporterDetails object as we've extracted the needed fields
+        delete incidentObj.alertId.reporterDetails;
+    }
+    return incidentObj;
+};
+
 // Create Incident
 export const createIncident = async (req, res) => {
     try {
@@ -172,7 +184,14 @@ export const getAllIncidents = async (req, res) => {
         const skip = (page - 1) * limit;
 
         const incidents = await Incident.find(filter)
-            .populate('alertId', 'incidentType incidentName location station status priority')
+            .populate({
+                path: 'alertId',
+                select: 'incidentType incidentName location station status priority',
+                populate: {
+                    path: 'reporterDetails',
+                    select: 'name phone'
+                }
+            })
             .populate('departmentOnDuty', 'name description')
             .populate('unitOnDuty', 'name isActive department')
             .sort({ createdAt: -1 })
@@ -181,9 +200,12 @@ export const getAllIncidents = async (req, res) => {
 
         const total = await Incident.countDocuments(filter);
 
+        // Transform incidents to include reporter info in alert
+        const transformedIncidents = incidents.map(transformIncidentWithReporter);
+
         res.json({
             success: true,
-            data: incidents,
+            data: transformedIncidents,
             pagination: {
                 current: parseInt(page),
                 pages: Math.ceil(total / limit),
@@ -213,7 +235,13 @@ export const getIncidentById = async (req, res) => {
         }
 
         const incident = await Incident.findById(id)
-            .populate('alertId')
+            .populate({
+                path: 'alertId',
+                populate: {
+                    path: 'reporterDetails',
+                    select: 'name phone'
+                }
+            })
             .populate('departmentOnDuty', 'name description')
             .populate('unitOnDuty', 'name isActive department');
 
@@ -224,9 +252,11 @@ export const getIncidentById = async (req, res) => {
             });
         }
 
+        const transformedIncident = transformIncidentWithReporter(incident);
+
         res.json({
             success: true,
-            data: incident
+            data: transformedIncident
         });
 
     } catch (error) {
@@ -560,7 +590,14 @@ export const getIncidentsByDepartment = async (req, res) => {
         const skip = (page - 1) * limit;
 
         const incidents = await Incident.find(filter)
-            .populate('alertId', 'incidentType incidentName location station status priority')
+            .populate({
+                path: 'alertId',
+                select: 'incidentType incidentName location station status priority',
+                populate: {
+                    path: 'reporterDetails',
+                    select: 'name phone'
+                }
+            })
             .populate('unitOnDuty', 'name isActive')
             .sort({ createdAt: -1 })
             .skip(skip)
@@ -568,9 +605,12 @@ export const getIncidentsByDepartment = async (req, res) => {
 
         const total = await Incident.countDocuments(filter);
 
+        // Transform incidents to include reporter info in alert
+        const transformedIncidents = incidents.map(transformIncidentWithReporter);
+
         res.json({
             success: true,
-            data: incidents,
+            data: transformedIncidents,
             pagination: {
                 current: parseInt(page),
                 pages: Math.ceil(total / limit),
@@ -606,7 +646,14 @@ export const getIncidentsByUnit = async (req, res) => {
         const skip = (page - 1) * limit;
 
         const incidents = await Incident.find(filter)
-            .populate('alertId', 'incidentType incidentName location station status priority')
+            .populate({
+                path: 'alertId',
+                select: 'incidentType incidentName location station status priority',
+                populate: {
+                    path: 'reporterDetails',
+                    select: 'name phone'
+                }
+            })
             .populate('departmentOnDuty', 'name description')
             .sort({ createdAt: -1 })
             .skip(skip)
@@ -614,9 +661,12 @@ export const getIncidentsByUnit = async (req, res) => {
 
         const total = await Incident.countDocuments(filter);
 
+        // Transform incidents to include reporter info in alert
+        const transformedIncidents = incidents.map(transformIncidentWithReporter);
+
         res.json({
             success: true,
-            data: incidents,
+            data: transformedIncidents,
             pagination: {
                 current: parseInt(page),
                 pages: Math.ceil(total / limit),
