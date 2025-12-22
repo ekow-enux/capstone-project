@@ -21,28 +21,17 @@ const getUserIdFromToken = (req) => {
 // Create FirePersonnel
 export const createFirePersonnel = async (req, res) => {
     try {
-        const { serviceNumber, name, rank, unit, department, role, station_id, tempPassword } = req.body;
+        const { serviceNumber, name, rank, unit, department, role, station_id, password } = req.body;
         
-        if (!serviceNumber || !station_id || !department) {
+        if (!serviceNumber || !station_id || !department || !password) {
             return res.status(400).json({
                 success: false,
-                message: 'Service number, station_id, and department are required'
+                message: 'Service number, station_id, department, and password are required'
             });
         }
         
-        // Generate temporary password if not provided
-        let generatedTempPassword = tempPassword;
-        if (!generatedTempPassword) {
-            // Generate a random 8-character password
-            generatedTempPassword = Math.random().toString(36).slice(-8).toUpperCase();
-        }
-        
-        // Hash the temporary password
-        const hashedTempPassword = await bcrypt.hash(generatedTempPassword, 10);
-        
-        // Set expiry for 7 days from now
-        const tempPasswordExpiry = new Date();
-        tempPasswordExpiry.setDate(tempPasswordExpiry.getDate() + 7);
+        // Hash the password
+        const hashedPassword = await bcrypt.hash(password, 10);
 
         // Validate station_id
         if (!mongoose.Types.ObjectId.isValid(station_id)) {
@@ -119,9 +108,7 @@ export const createFirePersonnel = async (req, res) => {
             department,
             role: role || 'Officer in charge (OIC)', 
             station_id, 
-            tempPassword: hashedTempPassword,
-            tempPasswordExpiry: tempPasswordExpiry,
-            passwordResetRequired: true
+            password: hashedPassword
         });
         await personnel.save();
 
@@ -136,10 +123,8 @@ export const createFirePersonnel = async (req, res) => {
 
         res.status(201).json({
             success: true,
-            message: 'Fire personnel created successfully. Temporary password set for 7 days.',
-            data: populatedPersonnel,
-            tempPassword: generatedTempPassword, // Return the plain text temp password so admin can share it
-            tempPasswordExpiry: tempPasswordExpiry
+            message: 'Fire personnel created successfully.',
+            data: populatedPersonnel
         });
     } catch (error) {
         res.status(500).json({
@@ -212,7 +197,7 @@ export const getCurrentFirePersonnel = async (req, res) => {
         }
 
         const personnel = await FirePersonnel.findById(userId)
-            .select('-password -tempPassword')
+            .select('-password')
             .populate('rank')
             .populate({
                 path: 'unit',
@@ -228,19 +213,9 @@ export const getCurrentFirePersonnel = async (req, res) => {
             });
         }
 
-        // Calculate requiresPasswordReset flag - check if tempPassword exists by querying again
-        const personnelWithTemp = await FirePersonnel.findById(userId)
-            .select('+tempPassword');
-        const requiresPasswordReset = personnel.passwordResetRequired || !!personnelWithTemp?.tempPassword;
-
-        // Include passwordResetRequired in the response data
-        const responseData = personnel.toObject();
-        responseData.passwordResetRequired = requiresPasswordReset;
-
         res.status(200).json({ 
             success: true, 
-            data: responseData,
-            requiresPasswordReset
+            data: personnel
         });
     } catch (error) {
         res.status(500).json({ 
@@ -586,19 +561,12 @@ export const loginFirePersonnel = async (req, res) => {
     try {
         const { serviceNumber, password } = req.body || {};
 
-        console.log('serviceNumber', serviceNumber);
-        console.log('password', password);
-
-
         if (!serviceNumber || !password) {
             return res.status(400).json({
                 success: false,
                 message: 'Service number and password are required'
             });
         }
-
-        console.log('serviceNumber', serviceNumber);
-        console.log('password', password);
 
         // Normalize serviceNumber - trim and ensure consistent format
         const normalizedServiceNumber = String(serviceNumber || '').trim();
@@ -607,7 +575,7 @@ export const loginFirePersonnel = async (req, res) => {
         const personnel = await FirePersonnel.findOne({ 
             serviceNumber: normalizedServiceNumber 
         })
-            .select('+password +tempPassword +tempPasswordExpiry +passwordResetRequired')
+            .select('+password')
             .populate('rank')
             .populate({
                 path: 'unit',
@@ -623,76 +591,15 @@ export const loginFirePersonnel = async (req, res) => {
             });
         }
 
-        let isValidPassword = false;
-        let requiresPasswordReset = false;
-        let isUsingTempPassword = false;
-        let tempPasswordExpired = false;
+        // Check password
         const passwordToCompare = String(password || '').trim();
+        const isValidPassword = await bcrypt.compare(passwordToCompare, personnel.password);
 
-        // Debug: Log password fields (remove in production)
-        console.log('Login attempt:', {
-            serviceNumber: normalizedServiceNumber,
-            hasPassword: !!personnel.password,
-            hasTempPassword: !!personnel.tempPassword,
-            tempPasswordExpiry: personnel.tempPasswordExpiry,
-            passwordResetRequired: personnel.passwordResetRequired
-        });
-
-        // Step 1: Check regular password if it exists
-        let isRegularPasswordValid = false;
-        if (personnel.password && typeof personnel.password === 'string' && personnel.password.length > 0) {
-            try {
-                isRegularPasswordValid = await bcrypt.compare(passwordToCompare, personnel.password);
-                if (isRegularPasswordValid) {
-                    isValidPassword = true;
-                }
-            } catch (error) {
-                console.error('Error comparing regular password:', error);
-            }
-        }
-
-        // Step 2: Check temp password if it exists (always check BOTH before deciding)
-        let isTempPasswordValid = false;
-        if (personnel.tempPassword && typeof personnel.tempPassword === 'string' && personnel.tempPassword.length > 0) {
-            // Check if temp password expired
-            if (personnel.tempPasswordExpiry && new Date(personnel.tempPasswordExpiry) < new Date()) {
-                tempPasswordExpired = true;
-            } else {
-                // Check temp password
-                try {
-                    isTempPasswordValid = await bcrypt.compare(passwordToCompare, personnel.tempPassword);
-                    if (isTempPasswordValid) {
-                        isValidPassword = true;
-                        isUsingTempPassword = true;
-                        requiresPasswordReset = true;
-                    }
-                } catch (error) {
-                    console.error('Error comparing temp password:', error);
-                }
-            }
-        }
-
-        // Step 3: Only after checking BOTH passwords, decide on response
         if (!isValidPassword) {
-            // Neither password matched - check which error to return
-            if (tempPasswordExpired && !isRegularPasswordValid) {
-                return res.status(403).json({
-                    success: false,
-                    message: 'Temporary password has expired. Please request a new one.'
-                });
-            } else {
-                return res.status(401).json({
-                    success: false,
-                    message: 'Invalid credentials'
-                });
-            }
-        }
-
-        // Set requiresPasswordReset flag
-        if (isUsingTempPassword) {
-            requiresPasswordReset = true;
-        } else {
-            requiresPasswordReset = personnel.passwordResetRequired || false;
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid credentials'
+            });
         }
 
         const token = jwt.sign(
@@ -714,16 +621,11 @@ export const loginFirePersonnel = async (req, res) => {
 
         const responseData = personnel.toObject();
         delete responseData.password;
-        delete responseData.tempPassword;
-        delete responseData.tempPasswordExpiry;
 
         res.status(200).json({
             success: true,
-            message: requiresPasswordReset
-                ? 'Login successful. Please reset your password.'
-                : 'Login successful.',
+            message: 'Login successful.',
             token,
-            requiresPasswordReset,
             data: responseData
         });
     } catch (error) {
@@ -748,15 +650,15 @@ export const logoutFirePersonnel = (req, res) => {
     });
 };
 
-// Change Password / Set Password (for temp password reset)
+// Change Password
 export const changePassword = async (req, res) => {
     try {
         const { oldPassword, newPassword } = req.body;
 
-        if (!newPassword) {
+        if (!oldPassword || !newPassword) {
             return res.status(400).json({ 
                 success: false, 
-                message: 'New password is required' 
+                message: 'Old password and new password are required' 
             });
         }
 
@@ -768,7 +670,7 @@ export const changePassword = async (req, res) => {
         }
 
         const personnel = await FirePersonnel.findById(req.params.id)
-            .select('+password +tempPassword +tempPasswordExpiry +passwordResetRequired');
+            .select('+password');
 
         if (!personnel) {
             return res.status(404).json({ 
@@ -777,54 +679,23 @@ export const changePassword = async (req, res) => {
             });
         }
 
-        // If oldPassword is provided, verify it (for password change)
-        // If not provided, check if temp password exists (for initial password setup)
-        if (oldPassword) {
-            let isValidPassword = false;
-            
-            // Check regular password
-            if (personnel.password) {
-                isValidPassword = await bcrypt.compare(oldPassword, personnel.password);
-            }
-            
-            // Check temp password if regular password doesn't match
-            if (!isValidPassword && personnel.tempPassword) {
-                if (personnel.tempPasswordExpiry && personnel.tempPasswordExpiry < new Date()) {
-                    return res.status(403).json({ 
-                        success: false, 
-                        message: 'Temporary password has expired. Please request a new one.' 
-                    });
-                }
-                isValidPassword = await bcrypt.compare(oldPassword, personnel.tempPassword);
-            }
-            
-            if (!isValidPassword) {
-                return res.status(401).json({ 
-                    success: false, 
-                    message: 'Old password is incorrect' 
-                });
-            }
-        } else {
-            // No oldPassword provided - check if password reset is required
-            if (!personnel.passwordResetRequired && !personnel.tempPassword) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: 'Old password is required for password change' 
-                });
-            }
+        // Verify old password
+        const isValidPassword = await bcrypt.compare(oldPassword, personnel.password);
+        
+        if (!isValidPassword) {
+            return res.status(401).json({ 
+                success: false, 
+                message: 'Old password is incorrect' 
+            });
         }
 
         // Hash and update new password
         personnel.password = await bcrypt.hash(newPassword, 10);
-        // Clear temp password and reset flag
-        personnel.tempPassword = undefined;
-        personnel.tempPasswordExpiry = undefined;
-        personnel.passwordResetRequired = false;
         await personnel.save();
 
         res.status(200).json({ 
             success: true, 
-            message: 'Password set successfully' 
+            message: 'Password changed successfully' 
         });
     } catch (error) {
         res.status(500).json({ 
