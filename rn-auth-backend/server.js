@@ -105,3 +105,11 @@ app.use(async (req, res, next) => {
 
 // Vercel serverless export
 export default app;
+
+// Local development server (not used on Vercel)
+const PORT = process.env.PORT || 5000;
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`🚀 Server running on port ${PORT}`);
+    });
+}
