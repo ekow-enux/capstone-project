@@ -171,7 +171,6 @@ jobs:
           echo "🔍 Verifying environment variables..."
           echo "MONGODB_URI: ${MONGODB_URI:0:20}..."
           echo "JWT_SECRET: ${JWT_SECRET:0:10}..."
-          echo "ARKSEND: ${ARKSEND:0:10}..."
 
           echo "🔄 Creating systemd service..."
           
