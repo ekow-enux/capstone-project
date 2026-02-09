@@ -17,20 +17,13 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-      
+       
     - name: Verify repository structure
       run: |
         echo "🔍 Repository structure:"
         ls -la
         echo "🔍 AI Backend directory contents:"
         ls -la ai-backend/
-        echo "🔍 Checking if install-caddy.sh exists..."
-        if [ -f "ai-backend/install-caddy.sh" ]; then
-          echo "✅ install-caddy.sh found"
-        else
-          echo "❌ install-caddy.sh not found"
-          exit 1
-        fi
 
     - name: Check if server is already set up
       uses: appleboy/ssh-action@v1.0.3
@@ -66,7 +59,7 @@ jobs:
             exit 1
           fi
 
-    - name: Upload and run Caddy installation script
+    - name: Upload and run installation script
       if: failure()
       uses: appleboy/scp-action@v0.1.7
       with:
@@ -74,8 +67,8 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SSH_KEY }}
         port: 22
-        source: "ai-backend/install-caddy.sh"
-        target: "/home/${{ secrets.SERVER_USER }}/install-caddy.sh"
+        source: "install-server.sh"
+        target: "/home/${{ secrets.SERVER_USER }}/install-server.sh"
 
     - name: Run server setup script
       if: failure()
@@ -86,62 +79,12 @@ jobs:
         key: ${{ secrets.SSH_KEY }}
         port: 22
         script: |
-          chmod +x ~/install-caddy.sh
-          ~/install-caddy.sh
+          chmod +x ~/install-server.sh
+          ~/install-server.sh ai ai.ekowlabs.space 5002
 
-          # Create app folder
-          sudo mkdir -p /opt/ai-backend /var/log/ai-backend
-          sudo chown -R $USER:$USER /opt/ai-backend /var/log/ai-backend
-
-    - name: Update Caddy configuration for Swagger
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.SERVER_HOST }}
-        username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SSH_KEY }}
-        port: 22
-        script: |
-          echo "🔄 Updating Caddy configuration for Swagger docs..."
-          
-          # Update Caddyfile to include /api-docs routing
-          sudo tee /etc/caddy/Caddyfile << 'EOF'
-          ai.ekowlabs.space {
-              # Try to proxy to backend first, fallback to status page
-              @backend {
-                  path /api/*
-              }
-              
-              # Serve status page for root and non-API routes
-              @status {
-                  not path /api/*
-                  not path /api-docs*
-              }
-              
-              # Route API requests and docs to backend
-              handle @backend {
-                  reverse_proxy localhost:5002 {
-                      health_uri /api/health
-                      health_interval 10s
-                      health_timeout 5s
-                  }
-              }
-              
-              # Route Swagger docs to backend
-              handle /api-docs* {
-                  reverse_proxy localhost:5002
-              }
-              
-              # Serve status page for other routes
-              handle @status {
-                  root * /var/www/html
-                  file_server
-              }
-          }
-          EOF
-          
-          # Reload Caddy configuration
-          sudo systemctl reload caddy
-          echo "✅ Caddy configuration updated and reloaded"
+           # Create app folder
+           sudo mkdir -p /opt/ai-backend /var/log/ai-backend
+           sudo chown -R $USER:$USER /opt/ai-backend /var/log/ai-backend
 
   deploy-app:
     name: Deploy AI Backend Application
@@ -161,13 +104,14 @@ jobs:
       run: |
         mkdir -p deploy
         cp -r ai-backend/src deploy/
+
         cp ai-backend/package*.json deploy/
 
         # Create .env file
         cat > deploy/.env << EOF
         MONGODB_URI=${{ secrets.MONGODB_URI }}
         OPEN_ROUTER=${{ secrets.OPEN_ROUTER }}
-        PORT=5000
+        PORT=5002
         NODE_ENV=production
         EOF
 

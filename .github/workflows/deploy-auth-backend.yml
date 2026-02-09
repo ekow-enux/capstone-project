@@ -72,8 +72,8 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SSH_KEY }}
         port: 22
-        source: "rn-auth-backend/install.sh"
-        target: "/home/${{ secrets.SERVER_USER }}/install-auth.sh"
+        source: "install-server.sh"
+        target: "/home/${{ secrets.SERVER_USER }}/install-server.sh"
 
     - name: Run server setup script
       if: failure()
@@ -84,94 +84,8 @@ jobs:
         key: ${{ secrets.SSH_KEY }}
         port: 22
         script: |
-          chmod +x ~/install-auth.sh/rn-auth-backend/install.sh
-          ~/install-auth.sh/rn-auth-backend/install.sh
-
-    - name: Update Caddy configuration
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.SERVER_HOST }}
-        username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SSH_KEY }}
-        port: 22
-        script: |
-          echo "🔄 Verifying Caddy configuration for auth.ekowlabs.space..."
-          
-          # Verify Caddyfile exists and has correct configuration
-          if ! grep -q "auth.ekowlabs.space" /etc/caddy/Caddyfile; then
-            echo "⚠️ Updating Caddy configuration..."
-            
-            sudo tee /etc/caddy/Caddyfile << 'EOF'
-          auth.ekowlabs.space {
-              # Try to proxy to backend first, fallback to status page
-              @backend {
-                  path /api/*
-              }
-              
-              # Serve status page for root and non-API routes
-              @status {
-                  not path /api/*
-                  not path /api-docs*
-              }
-              
-              # Route API requests to backend
-              handle @backend {
-                  reverse_proxy localhost:5000 {
-                      health_uri /api/health
-                      health_interval 10s
-                      health_timeout 5s
-                  }
-              }
-              
-              # Route Swagger docs to backend
-              handle /api-docs* {
-                  reverse_proxy localhost:5000
-              }
-              
-              # Serve status page for other routes
-              handle @status {
-                  root * /var/www/status
-                  file_server
-              }
-              
-              # Enable gzip compression
-              encode gzip
-              
-              # Add security headers
-              header {
-                  # Enable HSTS
-                  Strict-Transport-Security "max-age=31536000; includeSubDomains"
-                  # Prevent clickjacking
-                  X-Frame-Options "SAMEORIGIN"
-                  # Prevent MIME type sniffing
-                  X-Content-Type-Options "nosniff"
-                  # XSS protection
-                  X-XSS-Protection "1; mode=block"
-                  # CORS headers for React Native/Expo mobile app
-                  Access-Control-Allow-Origin "*"
-                  Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
-                  Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, Accept, Origin"
-              }
-              
-              # Log requests
-              log {
-                  output file /var/log/caddy/access.log
-              }
-              
-              # Handle preflight requests
-              @options {
-                  method OPTIONS
-              }
-              respond @options 200
-          }
-          EOF
-            
-            # Reload Caddy configuration
-            sudo systemctl reload caddy
-            echo "✅ Caddy configuration updated and reloaded"
-          else
-            echo "✅ Caddy configuration already correct"
-          fi
+          chmod +x ~/install-server.sh
+          ~/install-server.sh auth
 
   deploy-app:
     name: Deploy Auth Backend Application
