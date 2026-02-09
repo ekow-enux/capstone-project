@@ -165,6 +165,12 @@ jobs:
             exit 1
           fi
 
+          # Install unzip if not present (required for bun)
+          if ! command -v unzip &> /dev/null; then
+            echo "📦 Installing unzip..."
+            sudo apt-get update && sudo apt-get install -y unzip
+          fi
+
           echo "📦 Checking for package manager..."
           if [ -f "bun.lock" ]; then
             echo "Using Bun for installation..."
@@ -177,14 +183,22 @@ jobs:
             # Verify bun is available
             if ! command -v bun &> /dev/null; then
               echo "❌ Bun not found after installation, falling back to npm"
-              npm install --production
+              USE_NPM=true
             else
               echo "✅ Bun found: $(bun --version)"
-              bun install --production
+              USE_NPM=false
             fi
           else
             echo "Using npm for installation..."
+            USE_NPM=true
+          fi
+
+          if [ "$USE_NPM" = true ]; then
+            echo "📦 Running npm install..."
             npm install --production
+          else
+            echo "📦 Running bun install..."
+            bun install --production
           fi
 
           echo "📁 Checking node_modules..."
