@@ -5,7 +5,7 @@ on:
     branches: [ main ]
     paths:
       - 'rn-auth-backend/**'
-      - '.github/workflows/deploy-auth-backend.yml'  # Temporarily enabled for testing
+      - '.github/workflows/deploy-auth-backend.yml'
   workflow_dispatch:
 
 jobs:
@@ -165,12 +165,65 @@ jobs:
             exit 1
           fi
 
-          echo "📦 Installing production dependencies..."
-          npm install --production
+          echo "📦 Checking for package manager..."
+          if [ -f "bun.lock" ]; then
+            echo "Using Bun for installation..."
+            if ! command -v bun &> /dev/null; then
+              echo "Installing Bun..."
+              curl -fsSL https://bun.sh/install | bash
+              export PATH="$HOME/.bun/bin:$PATH"
+            fi
+            bun install --production
+          else
+            echo "Using npm for installation..."
+            npm install --production
+          fi
 
-          echo "🔍 Verifying environment variables..."
-          echo "MONGODB_URI: ${MONGODB_URI:0:20}..."
-          echo "JWT_SECRET: ${JWT_SECRET:0:10}..."
+          echo "📁 Checking node_modules..."
+          if [ -d "node_modules" ]; then
+            echo "✅ node_modules installed"
+            echo "   Dependencies: $(ls node_modules | wc -l) packages"
+          else
+            echo "❌ node_modules NOT found!"
+            exit 1
+          fi
+
+          echo "🔍 Verifying critical environment variables..."
+          if [ -z "$MONGODB_URI" ]; then
+            echo "❌ MONGODB_URI is not set!"
+            exit 1
+          else
+            echo "✅ MONGODB_URI is set"
+          fi
+
+          if [ -z "$JWT_SECRET" ]; then
+            echo "❌ JWT_SECRET is not set!"
+            exit 1
+          else
+            echo "✅ JWT_SECRET is set"
+          fi
+
+          # Create logs directory if it doesn't exist
+          echo "📁 Creating logs directory..."
+          mkdir -p logs
+          touch logs/out.log logs/err.log
+          echo "✅ Logs directory created"
+
+          # Check if port 5000 is already in use
+          echo "🔍 Checking if port 5000 is in use..."
+          if lsof -i :5000 > /dev/null 2>&1; then
+            echo "⚠️ Port 5000 is in use. Attempting to free it..."
+            sudo fuser -k 5000/tcp 2>/dev/null || true
+            sleep 2
+            echo "✅ Port 5000 freed"
+          else
+            echo "✅ Port 5000 is available"
+          fi
+
+          # Kill any existing Node.js processes for this app
+          echo "🔍 Checking for existing Node.js processes..."
+          pkill -f "node.*server.js" 2>/dev/null || true
+          sleep 1
 
           echo "🔄 Creating systemd service..."
           
@@ -292,4 +345,3 @@ jobs:
         echo "  • sudo systemctl restart auth-backend - Restart service"
         echo "  • sudo systemctl stop auth-backend - Stop service"
         echo "  • sudo journalctl -u auth-backend -f - View logs"
-
