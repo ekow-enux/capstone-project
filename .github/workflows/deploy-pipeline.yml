@@ -35,9 +35,9 @@ jobs:
     - name: Check if server is already set up
       uses: appleboy/ssh-action@v1.0.3
       with:
-        host: ${{ secrets.AI_BACKEND_HOST }}
-        username: ${{ secrets.AI_BACKEND_USER }}
-        key: ${{ secrets.SP_SSH_KEY }}
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SSH_KEY }}
         port: 22
         script: |
           echo "🔍 Checking if server is already set up..."
@@ -70,20 +70,20 @@ jobs:
       if: failure()
       uses: appleboy/scp-action@v0.1.7
       with:
-        host: ${{ secrets.AI_BACKEND_HOST }}
-        username: ${{ secrets.AI_BACKEND_USER }}
-        key: ${{ secrets.SP_SSH_KEY }}
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SSH_KEY }}
         port: 22
         source: "ai-backend/install-caddy.sh"
-        target: "/home/${{ secrets.AI_BACKEND_USER }}/install-caddy.sh"
+        target: "/home/${{ secrets.SERVER_USER }}/install-caddy.sh"
 
     - name: Run server setup script
       if: failure()
       uses: appleboy/ssh-action@v1.0.3
       with:
-        host: ${{ secrets.AI_BACKEND_HOST }}
-        username: ${{ secrets.AI_BACKEND_USER }}
-        key: ${{ secrets.SP_SSH_KEY }}
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SSH_KEY }}
         port: 22
         script: |
           chmod +x ~/install-caddy.sh
@@ -96,9 +96,9 @@ jobs:
     - name: Update Caddy configuration for Swagger
       uses: appleboy/ssh-action@v1.0.3
       with:
-        host: ${{ secrets.AI_BACKEND_HOST }}
-        username: ${{ secrets.AI_BACKEND_USER }}
-        key: ${{ secrets.SP_SSH_KEY }}
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SSH_KEY }}
         port: 22
         script: |
           echo "🔄 Updating Caddy configuration for Swagger docs..."
@@ -119,7 +119,7 @@ jobs:
               
               # Route API requests and docs to backend
               handle @backend {
-                  reverse_proxy localhost:5000 {
+                  reverse_proxy localhost:5002 {
                       health_uri /api/health
                       health_interval 10s
                       health_timeout 5s
@@ -128,7 +128,7 @@ jobs:
               
               # Route Swagger docs to backend
               handle /api-docs* {
-                  reverse_proxy localhost:5000
+                  reverse_proxy localhost:5002
               }
               
               # Serve status page for other routes
@@ -176,9 +176,9 @@ jobs:
     - name: Upload deployment package
       uses: appleboy/scp-action@v0.1.7
       with:
-        host: ${{ secrets.AI_BACKEND_HOST }}
-        username: ${{ secrets.AI_BACKEND_USER }}
-        key: ${{ secrets.SP_SSH_KEY }}
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SSH_KEY }}
         port: 22
         source: "ai-backend.tar.gz"
         target: "/opt/ai-backend/"
@@ -186,9 +186,9 @@ jobs:
     - name: Extract and configure systemd service
       uses: appleboy/ssh-action@v1.0.3
       with:
-        host: ${{ secrets.AI_BACKEND_HOST }}
-        username: ${{ secrets.AI_BACKEND_USER }}
-        key: ${{ secrets.SP_SSH_KEY }}
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SSH_KEY }}
         port: 22
         script: |
           cd /opt/ai-backend
@@ -204,9 +204,9 @@ jobs:
           [Service]
           ExecStart=/usr/bin/node /opt/ai-backend/src/server.js
           Restart=always
-          User=${{ secrets.AI_BACKEND_USER }}
+          User=${{ secrets.SERVER_USER }}
           Environment=NODE_ENV=production
-          Environment=PORT=5000
+          Environment=PORT=5002
           Environment=MONGODB_URI=${{ secrets.MONGODB_URI }}
           Environment=OPEN_ROUTER=${{ secrets.OPEN_ROUTER }}
           WorkingDirectory=/opt/ai-backend
@@ -226,9 +226,9 @@ jobs:
     - name: Health check
       uses: appleboy/ssh-action@v1.0.3
       with:
-        host: ${{ secrets.AI_BACKEND_HOST }}
-        username: ${{ secrets.AI_BACKEND_USER }}
-        key: ${{ secrets.SP_SSH_KEY }}
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SSH_KEY }}
         port: 22
         script: |
           sleep 10
@@ -239,7 +239,7 @@ jobs:
             sudo journalctl -u ai-backend --no-pager -n 50
             exit 1
           fi
-          if curl -f -s http://localhost:5000/ > /dev/null; then
+          if curl -f -s http://localhost:5002/ > /dev/null; then
             echo "✅ API is responding"
           else
             echo "⚠️ API not responding yet"

@@ -36,9 +36,9 @@ jobs:
     - name: Check if server is already set up
       uses: appleboy/ssh-action@v1.0.3
       with:
-        host: ${{ secrets.AUTH_HOST }}
-        username: ${{ secrets.AI_BACKEND_USER }}
-        key: ${{ secrets.AUTH_SECRET }}
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SSH_KEY }}
         port: 22
         script: |
           echo "🔍 Checking if server is already set up..."
@@ -68,20 +68,20 @@ jobs:
       if: failure()
       uses: appleboy/scp-action@v0.1.7
       with:
-        host: ${{ secrets.AUTH_HOST }}
-        username: ${{ secrets.AI_BACKEND_USER }}
-        key: ${{ secrets.AUTH_SECRET }}
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SSH_KEY }}
         port: 22
         source: "rn-auth-backend/install.sh"
-        target: "/home/${{ secrets.AI_BACKEND_USER }}/install-auth.sh"
+        target: "/home/${{ secrets.SERVER_USER }}/install-auth.sh"
 
     - name: Run server setup script
       if: failure()
       uses: appleboy/ssh-action@v1.0.3
       with:
-        host: ${{ secrets.AUTH_HOST }}
-        username: ${{ secrets.AI_BACKEND_USER }}
-        key: ${{ secrets.AUTH_SECRET }}
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SSH_KEY }}
         port: 22
         script: |
           chmod +x ~/install-auth.sh/rn-auth-backend/install.sh
@@ -90,9 +90,9 @@ jobs:
     - name: Update Caddy configuration
       uses: appleboy/ssh-action@v1.0.3
       with:
-        host: ${{ secrets.AUTH_HOST }}
-        username: ${{ secrets.AI_BACKEND_USER }}
-        key: ${{ secrets.AUTH_SECRET }}
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SSH_KEY }}
         port: 22
         script: |
           echo "🔄 Verifying Caddy configuration for auth.ekowlabs.space..."
@@ -189,7 +189,6 @@ jobs:
         MONGODB_URI=${{ secrets.MONGODB_URI }}
         PORT=5000
         JWT_SECRET=${{ secrets.JWT_SECRET }}
-        ARKSEND=${{ secrets.ARKSEND }}
         NODE_ENV=production
         EOF
 
@@ -205,9 +204,9 @@ jobs:
     - name: Upload deployment package
       uses: appleboy/scp-action@v0.1.7
       with:
-        host: ${{ secrets.AUTH_HOST }}
-        username: ${{ secrets.AI_BACKEND_USER }}
-        key: ${{ secrets.AUTH_SECRET }}
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SSH_KEY }}
         port: 22
         source: "auth-backend.tar.gz"
         target: "/tmp/"
@@ -215,9 +214,9 @@ jobs:
     - name: Extract and deploy application
       uses: appleboy/ssh-action@v1.0.3
       with:
-        host: ${{ secrets.AUTH_HOST }}
-        username: ${{ secrets.AI_BACKEND_USER }}
-        key: ${{ secrets.AUTH_SECRET }}
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SSH_KEY }}
         port: 22
         script: |
           echo "📁 Creating backend directory..."
@@ -305,9 +304,9 @@ jobs:
     - name: Health check
       uses: appleboy/ssh-action@v1.0.3
       with:
-        host: ${{ secrets.AUTH_HOST }}
-        username: ${{ secrets.AI_BACKEND_USER }}
-        key: ${{ secrets.AUTH_SECRET }}
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SSH_KEY }}
         port: 22
         script: |
           cd ~/school-project/backend/rn-auth-backend
